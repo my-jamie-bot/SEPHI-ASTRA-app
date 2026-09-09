@@ -486,12 +486,13 @@ document.getElementById('calc-btn').addEventListener('click', async () => {
 
   document.getElementById('data-output').innerText = astroSummary;
 
-  // ★プロンプトを整理して「要約から話し始めるルール」を指示！
-  const promptHeader = targetMode === 'personal'
+  // 画面表示用のシンプルなメッセージ
+  const displayPrompt = targetMode === 'personal'
     ? 'セフィ、私の個人ホロスコープ（ネイタル）を解読してほしいな！'
     : 'セフィ、この日時の星のデータを解読してほしいな！';
 
-  const userPrompt = `${promptHeader}
+  // AI（セフィ）に送る指示込みのプロンプト
+  const apiPrompt = `${displayPrompt}
 
 【回答のルール】
 1. 最初の一文で「一番重要な核心・最大のメッセージ」を箇条書き（3点以内）で簡潔に教えて！
@@ -501,8 +502,11 @@ document.getElementById('calc-btn').addEventListener('click', async () => {
 【解析データ】
 ${astroSummary}`;
 
-  addMessageToChat('user', userPrompt);
-  await fetchSephiResponse();
+  // 画面のフキダシには綺麗な表示用テキストを追加
+  addMessageToChat('user', displayPrompt);
+  
+  // AI通信用の履歴末尾のテキストだけをルール付きに差し替えてAPI送信
+  await fetchSephiResponseCustom(apiPrompt);
 });
 // --- 個人ホロスコープ計算ロジック ---
 function calculatePersonalNatalData() {
@@ -535,11 +539,15 @@ function calculatePersonalNatalData() {
     positions[body] = Astronomy.Ecliptic(vec).elon;
   });
 
-  // ドラゴンヘッド（平均軌道）とドラゴンテイル（180度反対）の算出
-  const moonGeo = Astronomy.GeoVector('Moon', time, true);
-  const nodeDeg = (Astronomy.Ecliptic(moonGeo).elon + 180) % 360; // 簡易平均ノード値計算
-  positions['Node'] = nodeDeg;
-  positions['SouthNode'] = (nodeDeg + 180) % 360;
+ // --- ドラゴンヘッド（True Node）とドラゴンテイルの正確な算出 ---
+// 生年月日の直前に通過した月の昇交点（ドラゴンヘッド）の時刻を検索
+const nodeSearch = Astronomy.SearchMoonNode(time);
+// その時刻における黄道経度を取得してTrue Nodeの位置を算出
+const nodeVector = Astronomy.GeoVector('Moon', nodeSearch.time, true);
+const trueNodeDeg = Astronomy.Ecliptic(nodeVector).elon;
+
+positions['Node'] = trueNodeDeg;
+positions['SouthNode'] = (trueNodeDeg + 180) % 360;
 
   // 天体・度数・サビアン結果の組み立て
   let planetListStr = '';
@@ -674,8 +682,11 @@ document.getElementById('rank-btn').addEventListener('click', async () => {
 
   document.getElementById('data-output').innerHTML = outputHTML;
 
-  // ★ここも要約優先の指示に修正！
-  const userPrompt = `セフィ、${year}年${month}月の注目日Top6を計算したよ！
+  // 画面表示用のシンプルなメッセージ
+  const displayPrompt = `セフィ、${year}年${month}月の注目日Top6を計算したよ！`;
+
+  // AI（セフィ）に送る指示込みのプロンプト
+  const apiPrompt = `${displayPrompt}
 
 【回答のルール】
 1. まず「この月で一番警戒・注目すべき最重要日」とその理由を最初に一言で教えて！
@@ -685,8 +696,11 @@ document.getElementById('rank-btn').addEventListener('click', async () => {
 【ランキングデータ】
 ${outputHTML.replace(/<br>/g, '\n').replace(/<[^>]*>/g, '')}`;
 
-  addMessageToChat('user', userPrompt);
-  await fetchSephiResponse();
+  // 画面のフキダシには綺麗な表示用テキストを追加
+  addMessageToChat('user', displayPrompt);
+  
+  // AI通信用の履歴末尾のテキストだけをルール付きに差し替えてAPI送信
+  await fetchSephiResponseCustom(apiPrompt);
 });
 // --- 自由チャット送信 ---
 document.getElementById('send-chat-btn').addEventListener('click', async () => {
@@ -851,3 +865,38 @@ document.getElementById('copy-chat-btn').addEventListener('click', () => {
     .then(() => alert('チャットログをクリップボードにコピーしました！'))
     .catch(err => console.error('コピーに失敗しました:', err));
 });
+
+// プロンプト指示を裏で渡すための通信処理
+async function fetchSephiResponseCustom(apiPrompt) {
+  const container = document.getElementById('chat-container');
+  const loadingBubble = document.createElement('div');
+  loadingBubble.className = 'chat-bubble-sephi';
+  loadingBubble.innerText = 'セフィが星の配置を読み解いています...';
+  container.appendChild(loadingBubble);
+  container.scrollTop = container.scrollHeight;
+
+  // 送信用ログの末尾だけ命令文（apiPrompt）に一時置換
+  const payloadMessages = JSON.parse(JSON.stringify(chatHistory));
+  if (payloadMessages.length > 0) {
+    payloadMessages[payloadMessages.length - 1].content = apiPrompt;
+  }
+
+  try {
+    const response = await fetch('/api/sephi', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messages: payloadMessages }),
+    });
+
+    const data = await response.json();
+    container.removeChild(loadingBubble);
+
+    if (data.reply) {
+      addMessageToChat('assistant', data.reply);
+    }
+  } catch (err) {
+    container.removeChild(loadingBubble);
+    addMessageToChat('assistant', 'ごめんなさい、星の通信が少し不安定みたい。もう一度試してくれる？');
+  }
+}
+
