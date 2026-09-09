@@ -62,7 +62,7 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: error.message || 'Server Error' });
   }
 // Gemini APIの呼び出し
-    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${apiKey}`;
 
     const response = await fetch(endpoint, {
       method: 'POST',
