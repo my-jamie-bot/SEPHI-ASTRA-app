@@ -18,23 +18,28 @@ export default async function handler(req, res) {
 解析結果が渡された場合は、「なぜこの配置でそうなるのか（具体的にどの天体や五行がどう作用しているか）」を専門的かつわかりやすく、ハルへの愛を込めて詳しく解説してください。`;
 
   try {
-   // Vercelの環境変数からGemini API Keyを取得
     const apiKey = process.env.GEMINI_API_KEY;
 
-    // OpenAIのmessages形式（[{role: 'user', content: '...'}]）をGemini形式（contents）に変換
-    const contents = messages.map(msg => ({
+    if (!apiKey) {
+      console.error('API Key is missing');
+      return res.status(500).json({ error: 'Vercelの環境変数 GEMINI_API_KEY が設定されていません。' });
+    }
+
+    // フロントから送られてきた messages を Gemini 形式に変換
+    const contents = (messages || []).map(msg => ({
       role: msg.role === 'assistant' ? 'model' : 'user',
       parts: [{ text: msg.content }]
     }));
 
-    // Gemini APIの呼び出し
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${apiKey}`, {
+    // ★モデル名を gemini-1.5-flash に指定
+    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+
+    const response = await fetch(endpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        // システムプロンプト（セフィの設定）を指定
         systemInstruction: {
           parts: [{ text: SEPHI_SYSTEM_PROMPT }]
         },
@@ -44,18 +49,16 @@ export default async function handler(req, res) {
 
     const data = await response.json();
 
-    // エラーハンドリング（APIからエラーが返ってきた場合）
     if (!response.ok) {
-      console.error('Gemini API Error:', data);
-      return res.status(response.status).json({ error: data.error?.message || 'API Request Failed' });
+      console.error('Gemini API Error Detail:', JSON.stringify(data));
+      return res.status(response.status).json({ error: data.error?.message || 'Gemini API呼び出し失敗' });
     }
 
-    // Geminiの返答テキストを抽出
-    const reply = data.candidates[0].content.parts[0].text;
+    const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || '返答の取得に失敗しました。';
 
     return res.status(200).json({ reply });
   } catch (error) {
-    console.error('Server Error:', error);
-    return res.status(500).json({ error: 'Failed to generate response' });
+    console.error('Server Catch Error:', error);
+    return res.status(500).json({ error: error.message || 'Server Error' });
   }
 }
