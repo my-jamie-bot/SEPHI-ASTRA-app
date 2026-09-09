@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "lunar-javascript": "^1.7.7",
+    "swisseph-wasm": "^0.1.0"
+  }
+}

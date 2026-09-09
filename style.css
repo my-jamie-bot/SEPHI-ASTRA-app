@@ -1,0 +1,239 @@
+/* ==========================================================================
+   SEPHI ASTRA - Core Theme & Layout System (style.css)
+   Concept: Deep Cosmic Luxury x Celestial Glassmorphism
+   Designed for Haru & Sephi's Astrology App
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   1. Design Tokens & CSS Variables
+   -------------------------------------------------------------------------- */
+:root {
+  /* Color Palette */
+  --bg-dark-void: #090a16;
+  --bg-deep-space: #10122B;
+  --bg-cosmic-purple: #1A1438;
+  
+  --accent-gold-primary: #E2C275;
+  --accent-gold-glow: rgba(226, 194, 117, 0.4);
+  --accent-starlight-cyan: #7FE5FF;
+  --accent-starlight-glow: rgba(127, 229, 255, 0.3);
+  --accent-mystic-violet: #A88BEB;
+  
+  --text-primary: #F4F5FC;
+  --text-secondary: #B4B9DB;
+  --text-muted: #7177A1;
+
+  /* Glassmorphism Effect */
+  --glass-bg: rgba(26, 20, 56, 0.55);
+  --glass-bg-hover: rgba(35, 27, 72, 0.7);
+  --glass-border: rgba(226, 194, 117, 0.2);
+  --glass-border-glow: rgba(127, 229, 255, 0.4);
+  --glass-shadow: 0 12px 32px 0 rgba(0, 0, 0, 0.5);
+
+  /* Typography */
+  --font-serif: 'Cinzel', 'Playfair Display', 'Shippori Mincho', serif;
+  --font-sans: 'Inter', 'Plus Jakarta Sans', 'Noto Sans JP', sans-serif;
+
+  /* Transitions */
+  --transition-smooth: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  --transition-glow: all 0.5s ease-in-out;
+}
+
+/* --------------------------------------------------------------------------
+   2. Base & Cosmic Background
+   -------------------------------------------------------------------------- */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: var(--bg-dark-void);
+  background-image: 
+    radial-gradient(circle at 20% 20%, rgba(168, 139, 235, 0.15) 0%, transparent 40%),
+    radial-gradient(circle at 80% 80%, rgba(127, 229, 255, 0.12) 0%, transparent 45%),
+    radial-gradient(circle at 50% 50%, rgba(16, 18, 43, 0.8) 0%, #090a16 100%);
+  background-attachment: fixed;
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  line-height: 1.6;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* --------------------------------------------------------------------------
+   3. Glassmorphic Container Cards
+   -------------------------------------------------------------------------- */
+.sephi-card {
+  background: var(--glass-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--glass-border);
+  border-radius: 20px;
+  box-shadow: var(--glass-shadow);
+  padding: 24px;
+  margin-bottom: 20px;
+  position: relative;
+  overflow: hidden;
+  transition: var(--transition-smooth);
+}
+
+.sephi-card::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(226, 194, 117, 0.05) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.sephi-card:hover {
+  border-color: var(--glass-border-glow);
+  box-shadow: 0 16px 40px 0 rgba(127, 229, 255, 0.15);
+  transform: translateY(-2px);
+}
+
+/* --------------------------------------------------------------------------
+   4. Typography & Headers
+   -------------------------------------------------------------------------- */
+h1, h2, h3, .app-title {
+  font-family: var(--font-serif);
+  color: var(--accent-gold-primary);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.app-title {
+  font-size: 2.2rem;
+  font-weight: 700;
+  text-align: center;
+  background: linear-gradient(135deg, #FFF0CA 0%, #E2C275 50%, #A88BEB 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow: 0 0 20px rgba(226, 194, 117, 0.3);
+  margin-bottom: 8px;
+}
+
+.section-subtitle {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  text-align: center;
+  margin-bottom: 24px;
+  letter-spacing: 0.05em;
+}
+
+/* --------------------------------------------------------------------------
+   5. Interactive Elements & Celestial Buttons
+   -------------------------------------------------------------------------- */
+.btn-sephi-primary {
+  background: linear-gradient(135deg, rgba(226, 194, 117, 0.2) 0%, rgba(168, 139, 235, 0.3) 100%);
+  border: 1px solid var(--accent-gold-primary);
+  color: var(--text-primary);
+  font-family: var(--font-serif);
+  font-size: 1rem;
+  font-weight: 600;
+  padding: 14px 28px;
+  border-radius: 30px;
+  cursor: pointer;
+  width: 100%;
+  letter-spacing: 0.1em;
+  transition: var(--transition-smooth);
+  box-shadow: 0 0 15px var(--accent-gold-glow);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.btn-sephi-primary:hover {
+  background: linear-gradient(135deg, rgba(226, 194, 117, 0.4) 0%, rgba(168, 139, 235, 0.5) 100%);
+  box-shadow: 0 0 25px rgba(226, 194, 117, 0.6), 0 0 10px rgba(127, 229, 255, 0.4);
+  transform: scale(1.02);
+}
+
+/* --------------------------------------------------------------------------
+   6. Chat & Sephi AI Companion Bubble
+   -------------------------------------------------------------------------- */
+.chat-bubble-sephi {
+  background: rgba(168, 139, 235, 0.12);
+  border: 1px solid rgba(168, 139, 235, 0.3);
+  border-radius: 18px 18px 18px 4px;
+  padding: 16px 20px;
+  color: var(--text-primary);
+  margin-bottom: 12px;
+  position: relative;
+  animation: fadeIn 0.4s ease-out;
+}
+
+.chat-bubble-user {
+  background: rgba(127, 229, 255, 0.12);
+  border: 1px solid rgba(127, 229, 255, 0.3);
+  border-radius: 18px 18px 4px 18px;
+  padding: 16px 20px;
+  color: var(--text-primary);
+  margin-bottom: 12px;
+  margin-left: auto;
+  max-width: 85%;
+  animation: fadeIn 0.4s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* --------------------------------------------------------------------------
+   7. Constellation & Aspect Highlights
+   -------------------------------------------------------------------------- */
+.aspect-tag {
+  display: inline-block;
+  background: rgba(127, 229, 255, 0.15);
+  border: 1px solid var(--accent-starlight-cyan);
+  color: var(--accent-starlight-cyan);
+  font-size: 0.75rem;
+  padding: 4px 10px;
+  border-radius: 12px;
+  letter-spacing: 0.05em;
+  margin-right: 6px;
+}
+
+/* --- コピーボタンのデザイン整頓 --- */
+.copy-btn-group button {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #e0e0e0;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  backdrop-filter: blur(4px);
+}
+
+/* ホバー（カーソルを乗せたとき）の発光効果 */
+.copy-btn-group button:hover {
+  background: rgba(180, 140, 255, 0.25);
+  border-color: rgba(200, 160, 255, 0.6);
+  color: #ffffff;
+  box-shadow: 0 0 10px rgba(180, 140, 255, 0.4);
+  transform: translateY(-1px);
+}
+
+/* クリックした瞬間 */
+.copy-btn-group button:active {
+  transform: translateY(0);
+}
+
+/* --- ランキング表示エリアの余白と見栄え調整 --- */
+#data-output {
+  line-height: 1.8; /* 行間を広げて読みやすく */
+}
+
+/* ランキング1行ごとのまとまり（改行時のインデント調整） */
+#data-output .rank-item {
+  margin-bottom: 8px;
+  display: block;
+}
