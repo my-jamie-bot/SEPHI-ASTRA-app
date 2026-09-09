@@ -32,7 +32,7 @@ export default async function handler(req, res) {
     }));
 
     // モデル名を指定 (gemini-1.5-flash または gemini-2.0-flash)
-    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${apiKey}`;
 
     const response = await fetch(endpoint, {
       method: 'POST',
