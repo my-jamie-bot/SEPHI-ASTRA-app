@@ -31,8 +31,8 @@ export default async function handler(req, res) {
       parts: [{ text: msg.content }]
     }));
 
-    // モデル名を指定 (gemini-1.5-flash または gemini-2.0-flash)
-    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${apiKey}`;
+    // ★ モデル名を gemini-2.5-flash に指定
+    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
 
     const response = await fetch(endpoint, {
       method: 'POST',
@@ -40,12 +40,10 @@ export default async function handler(req, res) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        // REST API用の正しいプロパティ名: system_instruction
         system_instruction: {
           parts: [{ text: SEPHI_SYSTEM_PROMPT }]
         },
         contents: contents,
-        // 生成設定（レスポンス高速化・タイムアウト防止）
         generationConfig: {
           maxOutputTokens: 800,
           temperature: 0.7
