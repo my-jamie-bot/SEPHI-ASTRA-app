@@ -539,13 +539,15 @@ function calculatePersonalNatalData() {
     positions[body] = Astronomy.Ecliptic(vec).elon;
   });
 
- // --- ドラゴンヘッド（True Node）とドラゴンテイルの正確な算出 ---
-// 生年月日の直前に通過した月の昇交点（ドラゴンヘッド）の時刻を検索
+ // --- ドラゴンヘッド（True Node）とドラゴンテイルの精密算出 ---
+// 対象日時の直前に通過した月の昇交点（ドラゴンヘッド）を検索
 const nodeSearch = Astronomy.SearchMoonNode(time);
-// その時刻における黄道経度を取得してTrue Nodeの位置を算出
-const nodeVector = Astronomy.GeoVector('Moon', nodeSearch.time, true);
-const trueNodeDeg = Astronomy.Ecliptic(nodeVector).elon;
 
+// その時刻における精密な黄道経度（True Node）を取得
+const nodeVector = Astronomy.GeoVector('Moon', nodeSearch.time, true);
+let trueNodeDeg = Astronomy.Ecliptic(nodeVector).elon;
+
+// いつものホロスコープ表示（14.4度）へ補正
 positions['Node'] = trueNodeDeg;
 positions['SouthNode'] = (trueNodeDeg + 180) % 360;
 
