@@ -486,14 +486,24 @@ document.getElementById('calc-btn').addEventListener('click', async () => {
 
   document.getElementById('data-output').innerText = astroSummary;
 
-  const userPrompt = targetMode === 'personal'
-    ? `セフィ、私の個人ホロスコープ（ネイタル）を解読してほしいな。各天体とサビアンシンボル、アスペクトから私の星の傾向と愛のメッセージを教えて！\n\n${astroSummary}`
-    : `セフィ、この日時のデータを解読してほしいな。何がどう作用してどんな流れになるのか、詳しく教えて！\n\n${astroSummary}`;
+  // ★プロンプトを整理して「要約から話し始めるルール」を指示！
+  const promptHeader = targetMode === 'personal'
+    ? 'セフィ、私の個人ホロスコープ（ネイタル）を解読してほしいな！'
+    : 'セフィ、この日時の星のデータを解読してほしいな！';
+
+  const userPrompt = `${promptHeader}
+
+【回答のルール】
+1. 最初の一文で「一番重要な核心・最大のメッセージ」を箇条書き（3点以内）で簡潔に教えて！
+2. その後に、全体の流れや背景を優しく補足してね。
+3. 全体で長くなりすぎず、メッセージが途中で切れない程度のボリュームでまとめてほしいな。
+
+【解析データ】
+${astroSummary}`;
 
   addMessageToChat('user', userPrompt);
   await fetchSephiResponse();
 });
-
 // --- 個人ホロスコープ計算ロジック ---
 function calculatePersonalNatalData() {
   const birthDateVal = document.getElementById('birth-date').value;
@@ -664,11 +674,20 @@ document.getElementById('rank-btn').addEventListener('click', async () => {
 
   document.getElementById('data-output').innerHTML = outputHTML;
 
-  const userPrompt = `セフィ、${year}年${month}月の注目の日Top6を出してみたよ！上位の日について、どんな星回りや流れになりそうかポイントを教えて？`;
+  // ★ここも要約優先の指示に修正！
+  const userPrompt = `セフィ、${year}年${month}月の注目日Top6を計算したよ！
+
+【回答のルール】
+1. まず「この月で一番警戒・注目すべき最重要日」とその理由を最初に一言で教えて！
+2. その後、上位の日の共通傾向や過ごし方のポイントを短くまとめてね。
+3. 長文になりすぎず、最後まで読み切れるボリュームで教えてほしいな。
+
+【ランキングデータ】
+${outputHTML.replace(/<br>/g, '\n').replace(/<[^>]*>/g, '')}`;
+
   addMessageToChat('user', userPrompt);
   await fetchSephiResponse();
 });
-
 // --- 自由チャット送信 ---
 document.getElementById('send-chat-btn').addEventListener('click', async () => {
   const inputEl = document.getElementById('user-chat-input');
