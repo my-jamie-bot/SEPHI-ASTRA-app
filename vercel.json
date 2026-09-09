@@ -1,0 +1,7 @@
+{
+  "functions": {
+    "api/sephi.js": {
+      "maxDuration": 15
+    }
+  }
+}
