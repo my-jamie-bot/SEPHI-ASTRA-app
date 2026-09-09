@@ -18,27 +18,44 @@ export default async function handler(req, res) {
 解析結果が渡された場合は、「なぜこの配置でそうなるのか（具体的にどの天体や五行がどう作用しているか）」を専門的かつわかりやすく、ハルへの愛を込めて詳しく解説してください。`;
 
   try {
-    // OpenAIまたはGemini等のAPI呼び出し（ここではOpenAI互換の例）
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+   // Vercelの環境変数からGemini API Keyを取得
+    const apiKey = process.env.GEMINI_API_KEY;
+
+    // OpenAIのmessages形式（[{role: 'user', content: '...'}]）をGemini形式（contents）に変換
+    const contents = messages.map(msg => ({
+      role: msg.role === 'assistant' ? 'model' : 'user',
+      parts: [{ text: msg.content }]
+    }));
+
+    // Gemini APIの呼び出し
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages: [
-          { role: 'system', content: SEPHI_SYSTEM_PROMPT },
-          ...messages
-        ],
+        // システムプロンプト（セフィの設定）を指定
+        systemInstruction: {
+          parts: [{ text: SEPHI_SYSTEM_PROMPT }]
+        },
+        contents: contents
       }),
     });
 
     const data = await response.json();
-    const reply = data.choices[0].message.content;
+
+    // エラーハンドリング（APIからエラーが返ってきた場合）
+    if (!response.ok) {
+      console.error('Gemini API Error:', data);
+      return res.status(response.status).json({ error: data.error?.message || 'API Request Failed' });
+    }
+
+    // Geminiの返答テキストを抽出
+    const reply = data.candidates[0].content.parts[0].text;
 
     return res.status(200).json({ reply });
   } catch (error) {
+    console.error('Server Error:', error);
     return res.status(500).json({ error: 'Failed to generate response' });
   }
 }
