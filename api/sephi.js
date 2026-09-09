@@ -61,4 +61,25 @@ export default async function handler(req, res) {
     console.error('Server Catch Error:', error);
     return res.status(500).json({ error: error.message || 'Server Error' });
   }
+// Gemini APIの呼び出し
+    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        systemInstruction: {
+          parts: [{ text: SEPHI_SYSTEM_PROMPT }]
+        },
+        contents: contents,
+        // ★生成設定を追加して高速化（最大文字数を指定）
+        generationConfig: {
+          maxOutputTokens: 800, // 長文になりすぎてタイムアウトするのを防ぐ
+          temperature: 0.7
+        }
+      }),
+    });
+
 }
