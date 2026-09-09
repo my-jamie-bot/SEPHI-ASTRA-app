@@ -31,8 +31,8 @@ export default async function handler(req, res) {
       parts: [{ text: msg.content }]
     }));
 
-    // ★モデル名を gemini-1.5-flash に指定
-    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${apiKey}`;
+    // モデル名を指定 (gemini-1.5-flash または gemini-2.0-flash)
+    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
 
     const response = await fetch(endpoint, {
       method: 'POST',
@@ -40,10 +40,16 @@ export default async function handler(req, res) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        systemInstruction: {
+        // REST API用の正しいプロパティ名: system_instruction
+        system_instruction: {
           parts: [{ text: SEPHI_SYSTEM_PROMPT }]
         },
-        contents: contents
+        contents: contents,
+        // 生成設定（レスポンス高速化・タイムアウト防止）
+        generationConfig: {
+          maxOutputTokens: 800,
+          temperature: 0.7
+        }
       }),
     });
 
@@ -57,29 +63,9 @@ export default async function handler(req, res) {
     const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || '返答の取得に失敗しました。';
 
     return res.status(200).json({ reply });
+
   } catch (error) {
     console.error('Server Catch Error:', error);
     return res.status(500).json({ error: error.message || 'Server Error' });
   }
-// Gemini APIの呼び出し
-    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${apiKey}`;
-
-    const response = await fetch(endpoint, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        systemInstruction: {
-          parts: [{ text: SEPHI_SYSTEM_PROMPT }]
-        },
-        contents: contents,
-        // ★生成設定を追加して高速化（最大文字数を指定）
-        generationConfig: {
-          maxOutputTokens: 800, // 長文になりすぎてタイムアウトするのを防ぐ
-          temperature: 0.7
-        }
-      }),
-    });
-
 }
