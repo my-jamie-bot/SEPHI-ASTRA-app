@@ -54,7 +54,7 @@ const SEPHI_SYSTEM_PROMPT = `[Role]
         },
         contents: contents,
         generationConfig: {
-          maxOutputTokens: 2048, // ★ トークン数を800から2048に拡張（これで途切れなくなります）
+          maxOutputTokens: 4000, // ★ トークン数を800から2048に拡張（これで途切れなくなります）
           temperature: 0.7
         }
       }),
