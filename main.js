@@ -910,37 +910,3 @@ document.getElementById('copy-chat-btn').addEventListener('click', () => {
     .catch(err => console.error('コピーに失敗しました:', err));
 });
 
-// プロンプト指示を裏で渡すための通信処理
-async function fetchSephiResponseCustom(apiPrompt) {
-  const container = document.getElementById('chat-container');
-  const loadingBubble = document.createElement('div');
-  loadingBubble.className = 'chat-bubble-sephi';
-  loadingBubble.innerText = 'セフィが星の配置を読み解いています...';
-  container.appendChild(loadingBubble);
-  container.scrollTop = container.scrollHeight;
-
-  // 送信用ログの末尾だけ命令文（apiPrompt）に一時置換
-  const payloadMessages = JSON.parse(JSON.stringify(chatHistory));
-  if (payloadMessages.length > 0) {
-    payloadMessages[payloadMessages.length - 1].content = apiPrompt;
-  }
-
-  try {
-    const response = await fetch('/api/sephi', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ messages: payloadMessages }),
-    });
-
-    const data = await response.json();
-    container.removeChild(loadingBubble);
-
-    if (data.reply) {
-      addMessageToChat('assistant', data.reply);
-    }
-  } catch (err) {
-    container.removeChild(loadingBubble);
-    addMessageToChat('assistant', 'ごめんなさい、星の通信が少し不安定みたい。もう一度試してくれる？');
-  }
-}
-
