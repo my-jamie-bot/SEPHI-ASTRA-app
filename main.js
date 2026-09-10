@@ -486,24 +486,6 @@ document.getElementById('calc-btn').addEventListener('click', async () => {
 
   document.getElementById('data-output').innerText = astroSummary;
 
-  const displayPrompt = targetMode === 'personal'
-    ? 'セフィ、私の個人ホロスコープ（ネイタル）を解読してほしいな！'
-    : 'セフィ、この日時の星のデータを解読してほしいな！';
-
-  const apiPrompt = `${displayPrompt}
-
-【回答のルール】
-1. 最初の一文で「一番重要な核心・最大のメッセージ」を箇条書き（3点以内）で簡潔に教えて！
-2. その後に、全体の流れや背景を優しく補足してね。
-3. 全体で長くなりすぎず、文章が途中で切れないよう250〜300文字程度で綺麗にまとめてね。
-
-【解析データ】
-${astroSummary}`;
-
-  // 関数を一回呼ぶだけで表示と通信を完結
-  await fetchSephiResponseCustom(displayPrompt, apiPrompt);
-});
-
   // 画面表示用のシンプルなメッセージ
   const displayPrompt = targetMode === 'personal'
     ? 'セフィ、私の個人ホロスコープ（ネイタル）を解読してほしいな！'
@@ -515,17 +497,14 @@ ${astroSummary}`;
 【回答のルール】
 1. 最初の一文で「一番重要な核心・最大のメッセージ」を箇条書き（3点以内）で簡潔に教えて！
 2. その後に、全体の流れや背景を優しく補足してね。
-3. 全体で長くなりすぎず、メッセージが途中で切れない程度のボリュームでまとめてほしいな。
+3. 全体で長くなりすぎず、文章が途中で切れないよう250〜300文字程度で綺麗にまとめてね。
 
 【解析データ】
 ${astroSummary}`;
 
-  // 画面のフキダシには綺麗な表示用テキストを追加
-  addMessageToChat('user', displayPrompt);
-  
-  // AI通信用の履歴末尾のテキストだけをルール付きに差し替えてAPI送信
-  await fetchSephiResponseCustom(apiPrompt);
-};
+  // 表示と通信を同時に実行
+  await fetchSephiResponseCustom(displayPrompt, apiPrompt);
+});
 // --- 個人ホロスコープ計算ロジック ---
 function calculatePersonalNatalData() {
   const birthDateVal = document.getElementById('birth-date').value;
