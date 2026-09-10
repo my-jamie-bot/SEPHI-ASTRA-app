@@ -677,8 +677,10 @@ document.getElementById('rank-btn').addEventListener('click', async () => {
 
   document.getElementById('data-output').innerHTML = outputHTML;
 
+  // 1. 画面表示用テキスト（これが697行目より上で必須です）
   const displayPrompt = `セフィ、${year}年${month}月の注目日Top6を計算したよ！`;
 
+  // 2. AI送信用プロンプト
   const apiPrompt = `${displayPrompt}
 
 【回答のルール】
@@ -689,7 +691,7 @@ document.getElementById('rank-btn').addEventListener('click', async () => {
 【ランキングデータ】
 ${outputHTML.replace(/<br>/g, '\n').replace(/<[^>]*>/g, '')}`;
 
-  // 関数を一回呼ぶだけで表示と通信を完結
+  // 3. 定義した変数を使って通信実行
   await fetchSephiResponseCustom(displayPrompt, apiPrompt);
 });
 
