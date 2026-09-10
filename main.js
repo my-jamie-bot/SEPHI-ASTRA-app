@@ -626,21 +626,40 @@ function getMonthlyTop6(year, month) {
     return `<span class="aspect-tag">第${index + 1}位</span> <strong>${month}/${item.day}</strong> (スコア: ${item.score}点) - 注目の配置: 【${item.reason}】 (日干支: ${item.dayGanZhi})`;
   });
 }
+
 // --- 月間Top6ランキング抽出ボタン ---
-document.getElementById('rank-btn')?.addEventListener('click', async () => {
+document.getElementById('rank-btn')?.addEventListener('click', () => {
   const monthVal = document.getElementById('target-month').value;
   if (!monthVal) return;
 
   const [year, month] = monthVal.split('-').map(Number);
   const top6List = getMonthlyTop6(year, month);
 
+  // 1. 分析対象と日本の始審図タイプの取得
+  const selectedTarget = document.querySelector('input[name="astro-target"]:checked')?.value;
+  const chartType = document.getElementById('japan-chart-type')?.value;
+
+  // 2. 日本選択時の注釈ヘッダー生成
+  let headerHTML = '';
+  if (selectedTarget === 'japan' && typeof JAPAN_CHART_INFO !== 'undefined') {
+    const info = JAPAN_CHART_INFO[chartType];
+    if (info) {
+      headerHTML = `<div style="background: rgba(255, 255, 255, 0.05); padding: 12px; border-radius: 8px; margin-bottom: 14px; border: 1px solid var(--glass-border, rgba(255,255,255,0.1));">
+        <strong style="color: var(--accent-color, #a855f7);">${info.title}</strong><br>
+        <span style="font-size: 0.85rem; color: var(--text-secondary); line-height: 1.5; display: inline-block; margin-top: 4px;">${info.desc}</span>
+      </div>`;
+    }
+  }
+
+  // 3. 計算結果のHTML生成
   let outputHTML = `<strong>【${year}年${month}月 注目・波乱スコア Top 6】</strong><br><br>`;
   top6List.forEach(itemStr => {
     outputHTML += `${itemStr}<br>`;
   });
 
-  document.getElementById('data-output').innerHTML = outputHTML;
-
+  // 4. データ出力画面に注釈＋結果を表示（セフィへの自動送信はせず手動会話へ）
+  document.getElementById('data-output').innerHTML = headerHTML + outputHTML;
+});
   // 1. 画面表示用テキスト
   const displayPrompt = `セフィ、${year}年${month}月の注目日Top6を計算したよ！`;
 
