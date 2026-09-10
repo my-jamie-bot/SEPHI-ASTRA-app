@@ -18,11 +18,11 @@
       <p class="section-subtitle">Celestial Guidance & Cosmic Dialogue</p>
     </header>
 
-    <!-- 日付指定＆月間ランキング解析カード -->
+    <!-- 分析・星位計算設定カード -->
     <section class="sephi-card">
-      <h3 style="margin-bottom: 16px;">ピンポイント日時 ＆ 月間スコア検索</h3>
+      <h3 style="margin-bottom: 16px;">星位計算・分析設定</h3>
       
-      <!-- 分析対象の切替ラジオボタン（個人ホロスコープを追加） -->
+      <!-- 分析対象の切替ラジオボタン -->
       <div class="target-selector" style="margin-bottom: 16px; padding: 8px 12px; background: rgba(255, 255, 255, 0.05); border-radius: 8px; display: flex; gap: 16px; align-items: center; flex-wrap: wrap;">
         <span style="font-size: 0.85rem; color: var(--text-secondary);">✦ 分析対象:</span>
         <label style="cursor: pointer; font-size: 0.85rem; color: var(--text-primary);"><input type="radio" name="astro-target" value="global" checked style="accent-color: var(--accent-color, #a855f7);"> 地球（全体運）</label>
@@ -66,41 +66,24 @@
           <button id="rank-btn" class="btn-sephi-primary" style="flex: 1; font-size: 0.85rem;">月間Top6抽出</button>
         </div>
       </div>
-    </section>
 
-<!-- 分析・各種計算カード -->
-<section class="sephi-card">
-  <h3>分析・各種計算</h3>
-  
-  <!-- 既存のラジオボタンや各種入力欄 -->
-  <!-- ... -->
+      <hr style="border: 0; border-top: 1px solid var(--glass-border); margin: 16px 0;">
 
-  <hr style="border: 0; border-top: 1px solid var(--glass-border); margin: 16px 0;">
-
-  <!-- サイン移動（イングレス）入力グループ -->
-  <div id="sign-input-group">
-    <label style="display: block; margin-bottom: 8px; font-weight: bold; font-size: 0.9rem;">
-      🌌 天体のサイン移動（星座移動）検出
-    </label>
-    <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-      <input type="date" id="sign-start-date" style="padding: 8px; border-radius: 8px; background: rgba(9, 10, 22, 0.6); border: 1px solid var(--glass-border); color: var(--text-primary);">
-      <span>〜</span>
-      <input type="date" id="sign-end-date" style="padding: 8px; border-radius: 8px; background: rgba(9, 10, 22, 0.6); border: 1px solid var(--glass-border); color: var(--text-primary);">
-      <button id="sign-btn" class="btn-sephi-primary" style="padding: 8px 16px; border-radius: 12px; cursor: pointer;">
-        サイン移動を抽出
-      </button>
-    </div>
-  </div>
-</section>
-
-    <!-- ここから提示してくれた解析データ結果カードへ続きます -->
-    <section class="sephi-card">
-      <h3 style="margin-bottom: 12px;">データ解析結果</h3>
-      <div id="data-output" style="color: var(--text-secondary); font-size: 0.9rem;">
-        日時または対象月を指定してボタンを押してください。
+      <!-- 天体のサイン移動（イングレス）検出グループ -->
+      <div id="sign-input-group">
+        <label style="display: block; margin-bottom: 8px; font-weight: bold; font-size: 0.85rem; color: var(--text-secondary);">
+          🌌 天体のサイン移動（星座移動）検出
+        </label>
+        <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+          <input type="date" id="sign-start-date" style="padding: 8px; border-radius: 8px; background: rgba(9, 10, 22, 0.6); border: 1px solid var(--glass-border); color: var(--text-primary);">
+          <span style="color: var(--text-secondary);">〜</span>
+          <input type="date" id="sign-end-date" style="padding: 8px; border-radius: 8px; background: rgba(9, 10, 22, 0.6); border: 1px solid var(--glass-border); color: var(--text-primary);">
+          <button id="sign-btn" class="btn-sephi-primary" style="padding: 8px 16px; border-radius: 12px; cursor: pointer;">
+            サイン移動を抽出
+          </button>
+        </div>
       </div>
-      ...
-
+    </section>
 
     <!-- 解析データ＆ランキング表示カード -->
     <section class="sephi-card">
@@ -127,11 +110,11 @@
       <!-- チャットログ表示領域 -->
       <div id="chat-container" style="max-height: 400px; overflow-y: auto; margin-bottom: 16px; padding-right: 4px;"></div>
 
-      <!-- 自由会話メッセージ入力欄 -->
+      <!-- 自由会話メッセージ入力欄 (IDをJSと統一: chat-input / send-btn) -->
       <div style="display: flex; gap: 8px;">
-        <input type="text" id="user-chat-input" placeholder="セフィにメッセージを送る..." 
+        <input type="text" id="chat-input" placeholder="セフィにメッセージを送る..." 
                style="flex: 1; padding: 12px; border-radius: 20px; background: rgba(9, 10, 22, 0.6); border: 1px solid var(--glass-border); color: var(--text-primary);">
-        <button id="send-chat-btn" class="btn-sephi-primary" style="width: auto; padding: 0 20px; border-radius: 20px;">
+        <button id="send-btn" class="btn-sephi-primary" style="width: auto; padding: 0 20px; border-radius: 20px;">
           送信
         </button>
       </div>
