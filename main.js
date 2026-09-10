@@ -525,7 +525,7 @@ ${astroSummary}`;
   
   // AI通信用の履歴末尾のテキストだけをルール付きに差し替えてAPI送信
   await fetchSephiResponseCustom(apiPrompt);
-});
+};
 // --- 個人ホロスコープ計算ロジック ---
 function calculatePersonalNatalData() {
   const birthDateVal = document.getElementById('birth-date').value;
