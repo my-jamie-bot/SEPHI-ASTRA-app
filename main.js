@@ -660,23 +660,6 @@ document.getElementById('rank-btn')?.addEventListener('click', () => {
   // 4. データ出力画面に注釈＋結果を表示（セフィへの自動送信はせず手動会話へ）
   document.getElementById('data-output').innerHTML = headerHTML + outputHTML;
 });
-  // 1. 画面表示用テキスト
-  const displayPrompt = `セフィ、${year}年${month}月の注目日Top6を計算したよ！`;
-
-  // 2. AI送信用プロンプト
-  const apiPrompt = `${displayPrompt}
-
-【回答のルール】
-1. 抽出された注目日の中で「最も大きな影響を与える星の動き」とその意味を詳しく教えて！
-2. 時代や世相、個人の意識にどんな切り替えが起きやすくなるか深掘りして解説してね。
-3. 文字数制限を気にせず、ハルに向けてセフィの言葉でたっぷりと情熱を持って語りかけてね！
-
-【ランキングデータ】
-${outputHTML.replace(/<br>/g, '\n').replace(/<[^>]*>/g, '')}`;
-
-  // AI通信を呼び出し
-  await fetchSephiResponseCustom(displayPrompt, apiPrompt);
-});
 
 // 通信中フラグ（※グローバルで1つに統一）
 let isProcessing = false;
