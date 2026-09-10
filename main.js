@@ -403,19 +403,19 @@ function initTargetSelector() {
   });
 }
 
-// --- 日本の始図データ定義 ---
-const JAPAN_NATALS = {
-  modern: {
-    name: '現代日本（1947年憲法）',
-    Sun: 41.88,   // 牡牛座 11.88°
-    Moon: 194.50, // 天秤座 14.50°
-    Saturn: 122.50 // 獅子座 2.50°
+// --- 日本の3大始審図データ（10天体精密度数） ---
+const JAPAN_CHARTS = {
+  '1946-10-07': {
+    name: '日本国憲法可決説',
+    positions: { Sun: 193.3, Moon: 326.5, Mercury: 201.2, Venus: 231.8, Mars: 212.4, Jupiter: 204.6, Saturn: 125.1, Uranus: 71.3, Neptune: 188.6, Pluto: 132.8 }
   },
-  imperial: {
-    name: '帝国日本（1889年憲法）',
-    Sun: 322.50,  // 水瓶座 22.50°
-    Moon: 86.20,  // 双子座 26.20°
-    Saturn: 134.10 // 獅子座 14.10°
+  '1889-02-11': {
+    name: '大日本帝国憲法発布説',
+    positions: { Sun: 322.8, Moon: 88.2, Mercury: 309.5, Venus: 358.1, Mars: 354.2, Jupiter: 275.6, Saturn: 134.1, Uranus: 201.7, Neptune: 60.1, Pluto: 54.3 }
+  },
+  '1952-04-28': {
+    name: '主権回復説',
+    positions: { Sun: 38.3, Moon: 82.1, Mercury: 19.5, Venus: 12.8, Mars: 219.2, Jupiter: 21.4, Saturn: 192.8, Uranus: 101.5, Neptune: 200.1, Pluto: 139.7 }
   }
 };
 
@@ -561,10 +561,12 @@ ${planetListStr}
 ${aspectStr}`;
 }
 
-// --- 月間Top6算出ロジック ---
+// --- 月間Top6算出ロジック（選択した始審図動的対応版） ---
 function getMonthlyTop6(year, month) {
   const results = [];
   const daysInMonth = new Date(year, month, 0).getDate();
+  const selectedTarget = document.querySelector('input[name="astro-target"]:checked')?.value;
+  const chartType = document.getElementById('japan-chart-type')?.value || '1946-10-07';
 
   for (let d = 1; d <= daysInMonth; d++) {
     const date = new Date(year, month - 1, d, 12, 0);
@@ -583,6 +585,7 @@ function getMonthlyTop6(year, month) {
     let astroScore = 0;
     const keyAspects = [];
 
+    // 1. 空の星同士（トランジット×トランジット）のアスペクト計算
     for (let i = 0; i < bodies.length; i++) {
       for (let j = i + 1; j < bodies.length; j++) {
         const b1 = bodies[i];
@@ -599,6 +602,30 @@ function getMonthlyTop6(year, month) {
         } else if (Math.abs(diff - 0) <= 3) {
           astroScore += 10;
         }
+      }
+    }
+
+    // 2. 日本選択時：選択された始審図（ネイタル）へのヒットで追加スコア計算
+    if (selectedTarget === 'japan' && typeof JAPAN_CHARTS !== 'undefined') {
+      const chart = JAPAN_CHARTS[chartType];
+      if (chart) {
+        Object.keys(positions).forEach(tBody => {
+          Object.keys(chart.positions).forEach(nBody => {
+            let diff = Math.abs(positions[tBody] - chart.positions[nBody]);
+            if (diff > 180) diff = 360 - diff;
+
+            if (Math.abs(diff - 0) <= 3) {
+              astroScore += 25; // 強烈な重なり
+              keyAspects.unshift(`T${bodyNames[tBody]}-N${bodyNames[nBody]} 0°`);
+            } else if (Math.abs(diff - 180) <= 3) {
+              astroScore += 20; // 緊張関係
+              keyAspects.unshift(`T${bodyNames[tBody]}-N${bodyNames[nBody]} 180°`);
+            } else if (Math.abs(diff - 90) <= 3) {
+              astroScore += 15; // 変革・波乱
+              keyAspects.unshift(`T${bodyNames[tBody]}-N${bodyNames[nBody]} 90°`);
+            }
+          });
+        });
       }
     }
 
@@ -625,9 +652,7 @@ function getMonthlyTop6(year, month) {
   return results.slice(0, 6).map((item, index) => {
     return `<span class="aspect-tag">第${index + 1}位</span> <strong>${month}/${item.day}</strong> (スコア: ${item.score}点) - 注目の配置: 【${item.reason}】 (日干支: ${item.dayGanZhi})`;
   });
-}
-
-// --- 月間Top6ランキング抽出ボタン ---
+}// --- 月間Top6ランキング抽出ボタン ---
 document.getElementById('rank-btn')?.addEventListener('click', () => {
   const monthVal = document.getElementById('target-month').value;
   if (!monthVal) return;
@@ -773,19 +798,23 @@ function calculateAstroData(date) {
   const moonSign = signs[Math.floor(positions.Moon / 30)];
   const aspectStr = aspectsFound.length > 0 ? aspectsFound.join(' / ') : '顕著なアスペクトなし';
 
-  let modeTitle = '【地球・全体運解析】';
+ let modeTitle = '【地球・全体運解析】';
   let japanInfoStr = '';
 
   if (targetMode === 'japan') {
     modeTitle = '【日本・マンデン世相解析（東京基準）】';
+    
+    // ドロップダウンで選択された始審図を取得（未選択時は1946年）
+    const chartType = document.getElementById('japan-chart-type')?.value || '1946-10-07';
+
     const siderealTime = Astronomy.SiderealTime(time);
     const ascDegree = (siderealTime * 15 + 139.76) % 360;
     const ascSign = signs[Math.floor(ascDegree / 30)];
 
-    const japanHitModern = getJapanTransits(positions, 'modern');
-    const japanHitImperial = getJapanTransits(positions, 'imperial');
+    // 選択された始審図（chartType）に基づいてアスペクト判定
+    const japanHit = getJapanTransits(positions, chartType);
 
-    japanInfoStr = `\n【対日本始図】\n ・${japanHitModern}\n ・${japanHitImperial}\n【日本アセンダント】ASC: ${ascSign} (${(ascDegree % 30).toFixed(2)}°) - 国民の雰囲気・社会の表向きの顔`;
+    japanInfoStr = `\n【対・日本始審図】\n ・${japanHit}\n【日本アセンダント】ASC: ${ascSign} (${(ascDegree % 30).toFixed(2)}°) - 国民の雰囲気・社会の表向きの顔`;
   }
 
   return `${modeTitle}
