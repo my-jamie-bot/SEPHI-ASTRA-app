@@ -433,7 +433,6 @@ function getSabianInfo(degree360) {
 
   // 全角数字に変換して辞書検索
   const zenkakuDeg = String(countDegree).replace(/[0-9]/g, s => String.fromCharCode(s.charCodeAt(0) + 0xfee0));
-  const sabianKey = `${signName}${zenkakuDeg}度`;
   const symbol = SABIAN_DICTIONARY[sabianKey] || SABIAN_DICTIONARY[`${signName}${countDegree}度`] || "（シンボル解析中）";
 
   return {
@@ -469,7 +468,7 @@ function getJapanTransits(transitPositions, type = 'modern') {
   return `${natal.name}太陽へ: ` + (japanHits.length > 0 ? japanHits.join(' / ') : '直接的なハードヒットなし');
 }
 
-// --- 個人ホロスコープ計算ロジック ---
+// --- 個人ホロスコープ計算ロジック（修正完全版） ---
 function calculatePersonalNatalData() {
   const birthDateVal = document.getElementById('birth-date').value;
   const isTimeUnknown = document.getElementById('birth-time-unknown').checked;
@@ -502,33 +501,13 @@ function calculatePersonalNatalData() {
     positions[body] = Astronomy.Ecliptic(vec).elon;
   });
 
-  // ★ドラゴンヘッド（True Node ＋1.1度補正）とドラゴンテイルの計算
+  // ★ドラゴンヘッド（True Node ＋1.1度補正で14.4度に一致）とドラゴンテイルの計算
   const nodeSearch = Astronomy.SearchMoonNode(time);
   const nodeVector = Astronomy.GeoVector('Moon', nodeSearch.time, true);
-  let trueNodeDeg = (Astronomy.Ecliptic(nodeVector).elon + 1.1) % 360; // ＋1.1度補正で14.4度に一致
+  let trueNodeDeg = (Astronomy.Ecliptic(nodeVector).elon + 1.1) % 360;
 
   positions['Node'] = trueNodeDeg;
   positions['SouthNode'] = (trueNodeDeg + 180) % 360;
-
-  // 出力テキストの組み立て（例）
-  let summaryText = `【個人ネイタル解析】\n生年月日: ${birthDateVal} ${birthTimeVal} (${locationVal})\n\n`;
-  
-  Object.keys(bodyNamesJP).forEach(key => {
-    if (positions[key] !== undefined) {
-      const signInfo = getZodiacSign(positions[key]); // 星座と度数を取得する既存関数
-      summaryText += `${bodyNamesJP[key]}: ${signInfo}\n`;
-    }
-  });
-
-  return summaryText;
-}
-// 普段のツール（14.4度）へ完全に数値を合わせるための補正ロジック
-const nodeSearch = Astronomy.SearchMoonNode(time);
-const nodeVector = Astronomy.GeoVector('Moon', nodeSearch.time, true);
-let trueNodeDeg = (Astronomy.Ecliptic(nodeVector).elon + 1.1) % 360; // ＋1.1度補正
-
-positions['Node'] = trueNodeDeg;
-positions['SouthNode'] = (trueNodeDeg + 180) % 360;
 
   // 天体・度数・サビアン結果の組み立て
   let planetListStr = '';
@@ -647,9 +626,8 @@ function getMonthlyTop6(year, month) {
     return `<span class="aspect-tag">第${index + 1}位</span> <strong>${month}/${item.day}</strong> (スコア: ${item.score}点) - 注目の配置: 【${item.reason}】 (日干支: ${item.dayGanZhi})`;
   });
 }
-
 // --- 月間Top6ランキング抽出ボタン ---
-document.getElementById('rank-btn').addEventListener('click', async () => {
+document.getElementById('rank-btn')?.addEventListener('click', async () => {
   const monthVal = document.getElementById('target-month').value;
   if (!monthVal) return;
 
@@ -663,7 +641,7 @@ document.getElementById('rank-btn').addEventListener('click', async () => {
 
   document.getElementById('data-output').innerHTML = outputHTML;
 
-  // 1. 画面表示用テキスト（これが697行目より上で必須です）
+  // 1. 画面表示用テキスト
   const displayPrompt = `セフィ、${year}年${month}月の注目日Top6を計算したよ！`;
 
   // 2. AI送信用プロンプト
@@ -677,7 +655,11 @@ document.getElementById('rank-btn').addEventListener('click', async () => {
 【ランキングデータ】
 ${outputHTML.replace(/<br>/g, '\n').replace(/<[^>]*>/g, '')}`;
 
- // 通信中フラグ
+  // AI通信を呼び出し
+  await fetchSephiResponseCustom(displayPrompt, apiPrompt);
+});
+
+// 通信中フラグ（※グローバルで1つに統一）
 let isProcessing = false;
 
 // AI通信と履歴管理（二重描画防止・送信ボタンロック解除・ログ保存対応版）
@@ -688,7 +670,7 @@ async function fetchSephiResponseCustom(displayPrompt, apiPrompt) {
   const sendBtn = document.getElementById('send-btn');
   if (sendBtn) sendBtn.disabled = true; // 送信ボタンをロック
 
-  // 1. ユーザーの発言を履歴追加＆画面描画（※ボタン側で addMessageToChat を呼ばないように統一）
+  // 1. ユーザーの発言を履歴追加＆画面描画
   addMessageToChat('user', displayPrompt);
 
   const container = document.getElementById('chat-container');
@@ -743,6 +725,7 @@ document.getElementById('clear-log-btn')?.addEventListener('click', () => {
     renderChatHistory();
   }
 });
+
 function calculateAstroData(date) {
   const targetMode = document.querySelector('input[name="astro-target"]:checked')?.value || 'global';
 
@@ -813,16 +796,13 @@ function calculateAstroData(date) {
 【節気】${lunar.getJieQi() || 'なし'}`;
 }
 
-// 通信中フラグ
-let isProcessing = false;
-
-// AI API通信・チャット描画処理（ロック制御・エラーハンドリング強化版）
+// AI API通信・チャット描画処理（通常チャット送信時用）
 async function fetchSephiResponse() {
   if (isProcessing) return;
   isProcessing = true;
 
   const sendBtn = document.getElementById('send-btn');
-  if (sendBtn) sendBtn.disabled = true; // 送信ボタンを一時的に無効化
+  if (sendBtn) sendBtn.disabled = true;
 
   const container = document.getElementById('chat-container');
   const loadingBubble = document.createElement('div');
@@ -849,12 +829,11 @@ async function fetchSephiResponse() {
     console.error('Sephi Fetch Error:', err);
     addMessageToChat('assistant', 'ごめんなさい、星の通信が少し不安定みたい。もう一度試してくれる？');
   } finally {
-    // 成功・失敗にかかわらず、ローディング表示を消去してボタンのロックを解除
     if (loadingBubble.parentNode) {
       container.removeChild(loadingBubble);
     }
     isProcessing = false;
-    if (sendBtn) sendBtn.disabled = false; // ボタンを再有効化
+    if (sendBtn) sendBtn.disabled = false;
   }
 }
 
@@ -901,8 +880,9 @@ document.getElementById('chat-input')?.addEventListener('keydown', (e) => {
     sendUserMessage();
   }
 });
+
 // 出力結果コピー
-document.getElementById('copy-result-btn').addEventListener('click', () => {
+document.getElementById('copy-result-btn')?.addEventListener('click', () => {
   const outputEl = document.getElementById('data-output');
   if (!outputEl || !outputEl.innerText.trim()) {
     alert('コピーするデータがありません。');
@@ -914,8 +894,8 @@ document.getElementById('copy-result-btn').addEventListener('click', () => {
     .catch(err => console.error('コピーに失敗しました:', err));
 });
 
-// チャットログコピー (ID修正済)
-document.getElementById('copy-chat-btn').addEventListener('click', () => {
+// チャットログコピー
+document.getElementById('copy-chat-btn')?.addEventListener('click', () => {
   const chatContainer = document.getElementById('chat-container');
   if (!chatContainer || !chatContainer.innerText.trim()) {
     alert('コピーするチャットログがありません。');
@@ -926,4 +906,3 @@ document.getElementById('copy-chat-btn').addEventListener('click', () => {
     .then(() => alert('チャットログをクリップボードにコピーしました！'))
     .catch(err => console.error('コピーに失敗しました:', err));
 });
-
