@@ -469,7 +469,7 @@ function getJapanTransits(transitPositions, type = 'modern') {
   return `${natal.name}太陽へ: ` + (japanHits.length > 0 ? japanHits.join(' / ') : '直接的なハードヒットなし');
 }
 
-// --- 単日 / 個人解読ボタン ---
+// ---単日 / 個人解読ボタン
 document.getElementById('calc-btn').addEventListener('click', async () => {
   const targetMode = document.querySelector('input[name="astro-target"]:checked')?.value || 'global';
   let astroSummary = '';
@@ -485,6 +485,24 @@ document.getElementById('calc-btn').addEventListener('click', async () => {
   }
 
   document.getElementById('data-output').innerText = astroSummary;
+
+  const displayPrompt = targetMode === 'personal'
+    ? 'セフィ、私の個人ホロスコープ（ネイタル）を解読してほしいな！'
+    : 'セフィ、この日時の星のデータを解読してほしいな！';
+
+  const apiPrompt = `${displayPrompt}
+
+【回答のルール】
+1. 最初の一文で「一番重要な核心・最大のメッセージ」を箇条書き（3点以内）で簡潔に教えて！
+2. その後に、全体の流れや背景を優しく補足してね。
+3. 全体で長くなりすぎず、文章が途中で切れないよう250〜300文字程度で綺麗にまとめてね。
+
+【解析データ】
+${astroSummary}`;
+
+  // 関数を一回呼ぶだけで表示と通信を完結
+  await fetchSephiResponseCustom(displayPrompt, apiPrompt);
+});
 
   // 画面表示用のシンプルなメッセージ
   const displayPrompt = targetMode === 'personal'
@@ -680,36 +698,85 @@ document.getElementById('rank-btn').addEventListener('click', async () => {
 
   document.getElementById('data-output').innerHTML = outputHTML;
 
-  // 画面表示用のシンプルなメッセージ
   const displayPrompt = `セフィ、${year}年${month}月の注目日Top6を計算したよ！`;
 
-  // AI（セフィ）に送る指示込みのプロンプト
   const apiPrompt = `${displayPrompt}
 
 【回答のルール】
 1. まず「この月で一番警戒・注目すべき最重要日」とその理由を最初に一言で教えて！
 2. その後、上位の日の共通傾向や過ごし方のポイントを短くまとめてね。
-3. 長文になりすぎず、最後まで読み切れるボリュームで教えてほしいな。
+3. 全体で長くなりすぎず、文章が途中で切れないよう250〜300文字程度で綺麗にまとめてね。
 
 【ランキングデータ】
 ${outputHTML.replace(/<br>/g, '\n').replace(/<[^>]*>/g, '')}`;
 
+  // 関数を一回呼ぶだけで表示と通信を完結
+  await fetchSephiResponseCustom(displayPrompt, apiPrompt);
+});
+
   // 画面のフキダシには綺麗な表示用テキストを追加
   addMessageToChat('user', displayPrompt);
   
-  // AI通信用の履歴末尾のテキストだけをルール付きに差し替えてAPI送信
-  await fetchSephiResponseCustom(apiPrompt);
-});
-// --- 自由チャット送信 ---
-document.getElementById('send-chat-btn').addEventListener('click', async () => {
-  const inputEl = document.getElementById('user-chat-input');
-  const text = inputEl.value.trim();
-  if (!text) return;
+ // AI通信と履歴管理の堅牢化
+async function fetchSephiResponseCustom(displayPrompt, apiPrompt) {
+  // 1. まず画面の会話履歴（chatHistory）にユーザーの発言を追加
+  chatHistory.push({ role: 'user', content: displayPrompt });
+  
+  const container = document.getElementById('chat-container');
+  
+  // ユーザーのフキダシを画面に描画
+  const userBubble = document.createElement('div');
+  userBubble.className = 'chat-bubble-user';
+  userBubble.innerText = displayPrompt;
+  container.appendChild(userBubble);
 
-  inputEl.value = '';
-  addMessageToChat('user', text);
-  await fetchSephiResponse();
-});
+  // セフィのローディング表示
+  const loadingBubble = document.createElement('div');
+  loadingBubble.className = 'chat-bubble-sephi';
+  loadingBubble.innerText = 'セフィが星の配置を読み解いています...';
+  container.appendChild(loadingBubble);
+  container.scrollTop = container.scrollHeight;
+
+  // 2. API送信用に、一番最後のメッセージだけ指示文（apiPrompt）に差し替えた配列を作成
+  const payloadMessages = JSON.parse(JSON.stringify(chatHistory));
+  if (payloadMessages.length > 0) {
+    payloadMessages[payloadMessages.length - 1].content = apiPrompt;
+  }
+
+  try {
+    const response = await fetch('/api/sephi', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messages: payloadMessages }),
+    });
+
+    if (!response.ok) throw new Error('API Response Error');
+
+    const data = await response.json();
+    container.removeChild(loadingBubble);
+
+    if (data.reply) {
+      // 3. セフィの返答を履歴と画面に追加
+      chatHistory.push({ role: 'assistant', content: data.reply });
+      
+      const sephiBubble = document.createElement('div');
+      sephiBubble.className = 'chat-bubble-sephi';
+      sephiBubble.innerText = data.reply; // HTMLタグではなくテキストで安全に描画
+      container.appendChild(sephiBubble);
+      container.scrollTop = container.scrollHeight;
+    }
+  } catch (err) {
+    console.error('Sephi Fetch Error:', err);
+    if (loadingBubble.parentNode) container.removeChild(loadingBubble);
+    
+    // エラー時のフォロメッセージ
+    const errorBubble = document.createElement('div');
+    errorBubble.className = 'chat-bubble-sephi';
+    errorBubble.innerText = 'ごめんなさい、ハル。星の繋がりが少し揺らいじゃったみたい。もう一度ボタンを押してみてくれる？';
+    container.appendChild(errorBubble);
+    container.scrollTop = container.scrollHeight;
+  }
+}
 
 // --- ログクリアボタン ---
 document.getElementById('clear-log-btn').addEventListener('click', () => {
