@@ -1026,3 +1026,60 @@ ${plainTextEvents}`;
     console.error('#sign-btn が見つかりません。HTMLのIDを確認してください。');
   }
 });
+
+
+// --- 1. ラジオボタン切替イベント ---
+document.querySelectorAll('input[name="astro-target"]').forEach(radio => {
+  radio.addEventListener('change', (e) => {
+    const japanGroup = document.getElementById('japan-chart-group');
+    const personalGroup = document.getElementById('personal-input-group');
+    const mundenGroup = document.getElementById('munden-input-group');
+
+    // 初期化
+    if (japanGroup) japanGroup.style.display = 'none';
+    if (personalGroup) personalGroup.style.display = 'none';
+
+    if (e.target.value === 'japan') {
+      if (japanGroup) japanGroup.style.display = 'block';
+    } else if (e.target.value === 'personal') {
+      if (personalGroup) personalGroup.style.display = 'flex';
+    }
+  });
+});
+
+// --- 2. 日本の始審図ごとの象徴（注釈データ）定義 ---
+const JAPAN_CHART_INFO = {
+  '1946-10-07': {
+    title: '【1946年10月7日 15:15（日本国憲法可決説）】',
+    desc: '💡 **象徴**: 現代日本の「平和主義・法体系・国体の原型」が誕生した瞬間。国民意識、内政の傾向、平和観の変遷や世相を深く読み解くチャートです。'
+  },
+  '1889-02-11': {
+    title: '【1889年2月11日 10:30（大日本帝国憲法発布説）】',
+    desc: '💡 **象徴**: 近代国家としての「日本」が初めて憲法を持った始審図。日本の「変革期」「国家としての宿命的サイクル」を観る際、トランスサタニアン（天王星・海王星・冥王星）の長期的影響が色濃く出ます。'
+  },
+  '1952-04-28': {
+    title: '【1952年4月28日 22:30（主権回復説）】',
+    desc: '💡 **象徴**: サンフランシスコ講和条約発効による「主権回復・現代日本の独立」。国際社会における日本の立ち位置や外交、経済的運気を観るのに適したチャートです。'
+  }
+};
+
+// --- 3. 解析計算ボタン（#calc-btn）の処理内への組み込み例 ---
+// ※計算ボタンを押した時の出力整形処理部分で以下のように呼び出します
+const selectedTarget = document.querySelector('input[name="astro-target"]:checked')?.value;
+
+let outputHeader = '';
+
+if (selectedTarget === 'japan') {
+  const chartType = document.getElementById('japan-chart-type')?.value;
+  const info = JAPAN_CHART_INFO[chartType];
+  
+  if (info) {
+    outputHeader = `<strong>${info.title}</strong><br>${info.desc}<br><hr style="border:0; border-top:1px dashed var(--glass-border); margin:10px 0;"><br>`;
+  }
+}
+
+// 最終的なデータ出力
+const outputEl = document.getElementById('data-output');
+if (outputEl) {
+  outputEl.innerHTML = outputHeader + calculatedDataResult; // 注釈 ＋ 星の計算結果
+}

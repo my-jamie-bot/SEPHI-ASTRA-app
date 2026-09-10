@@ -30,6 +30,17 @@
         <label style="cursor: pointer; font-size: 0.85rem; color: var(--text-primary);"><input type="radio" name="astro-target" value="personal" style="accent-color: var(--accent-color, #a855f7);"> 個人ホロスコープ</label>
       </div>
 
+<!-- ★ここに追加！日本（世相）選択時のみ表示する始審図切替グループ -->
+      <div id="japan-chart-group" style="display: none; margin-bottom: 12px;">
+        <label style="font-size: 0.85rem; color: var(--text-secondary);">✦ 日本の始審図（建国チャート）を選択:</label>
+        <select id="japan-chart-type" style="width: 100%; padding: 10px; border-radius: 10px; background: rgba(9, 10, 22, 0.6); border: 1px solid var(--glass-border); color: var(--text-primary); margin-top: 4px;">
+          <option value="1946-10-07">1946年10月7日 15:15（日本国憲法可決説・現代日本の原点）</option>
+          <option value="1889-02-11">1889年2月11日 10:30（大日本帝国憲法発布説・近代日本）</option>
+          <option value="1952-04-28">1952年4月28日 22:30（主権回復説・国際社会での独立）</option>
+        </select>
+      </div>
+
+
       <!-- マンデン／日時解読用入力グループ -->
       <div id="munden-input-group">
         <label style="font-size: 0.85rem; color: var(--text-secondary);">特定の日時を解読:</label>
