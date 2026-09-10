@@ -969,3 +969,61 @@ function getSignTransits(startDateStr, endDateStr) {
 
   return ingressEvents;
 }
+
+// --- サイン移動実行ボタンの処理 ---
+document.addEventListener('DOMContentLoaded', () => {
+  const signBtn = document.getElementById('sign-btn');
+  
+  if (signBtn) {
+    signBtn.addEventListener('click', async () => {
+      console.log('サイン移動ボタンが押されました');
+
+      const startVal = document.getElementById('sign-start-date')?.value;
+      const endVal = document.getElementById('sign-end-date')?.value;
+
+      if (!startVal || !endVal) {
+        alert('開始日と終了日の両方を指定してください。');
+        return;
+      }
+
+      // 計算実行
+      const events = getSignTransits(startVal, endVal);
+
+      // 結果表示用のHTML作成
+      let outputHTML = `<strong>【サイン移動（イングレス）解析結果】</strong><br>期間: ${startVal} 〜 ${endVal}<br><br>`;
+
+      if (events.length === 0) {
+        outputHTML += '指定された期間内に主要天体のサイン移動はありません。';
+      } else {
+        events.forEach(ev => {
+          outputHTML += `・<strong>${ev.date}</strong>：${ev.bodyName} が 【${ev.fromSign}】➔ <strong>【${ev.toSign}】</strong> へ移動<br>`;
+        });
+      }
+
+      const outputEl = document.getElementById('data-output');
+      if (outputEl) {
+        outputEl.innerHTML = outputHTML;
+      }
+
+      // AI（セフィ）への依頼（関数が存在する場合のみ実行）
+      if (events.length > 0 && typeof fetchSephiResponseCustom === 'function') {
+        const displayPrompt = `セフィ、${startVal}〜${endVal}の間の天体のサイン移動を調べたよ！`;
+        const plainTextEvents = events.map(e => `・${e.date}: ${e.bodyName}（${e.fromSign} → ${e.toSign}）`).join('\n');
+        
+        const apiPrompt = `${displayPrompt}
+
+【回答のルール】
+1. この期間のサイン移動の中で「最も大きな影響を与える星の動き」とその意味を教えて！
+2. 時代や世相、個人の意識にどんな切り替えが起きやすくなるか簡単に解説してね。
+3. 全体で250〜300文字程度で綺麗にまとめてね。
+
+【サイン移動データ】
+${plainTextEvents}`;
+
+        await fetchSephiResponseCustom(displayPrompt, apiPrompt);
+      }
+    });
+  } else {
+    console.error('#sign-btn が見つかりません。HTMLのIDを確認してください。');
+  }
+});
