@@ -906,3 +906,66 @@ document.getElementById('copy-chat-btn')?.addEventListener('click', () => {
     .then(() => alert('チャットログをクリップボードにコピーしました！'))
     .catch(err => console.error('コピーに失敗しました:', err));
 });
+
+// --- 天体のサイン移動（イングレス）検出ロジック ---
+function getSignTransits(startDateStr, endDateStr) {
+  const startDate = new Date(startDateStr);
+  const endDate = new Date(endDateStr);
+  
+  if (isNaN(startDate) || isNaN(endDate) || startDate > endDate) {
+    alert('正しい期間を指定してください。');
+    return [];
+  }
+
+  const signs = ['牡羊座', '牡牛座', '双子座', '蟹座', '獅子座', '乙女座', '天秤座', '蠍座', '射手座', '山羊座', '水瓶座', '魚座'];
+  const targetBodies = ['Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn', 'Uranus', 'Neptune', 'Pluto'];
+  const bodyNamesJP = {
+    Mercury: '水星', Venus: '金星', Mars: '火星', Jupiter: '木星',
+    Saturn: '土星', Uranus: '天王星', Neptune: '海王星', Pluto: '冥王星'
+  };
+
+  const ingressEvents = [];
+  const currDate = new Date(startDate);
+
+  // 初日の位置（サイン）を取得して保持
+  const prevSigns = {};
+  const initialTime = Astronomy.MakeTime(currDate);
+  targetBodies.forEach(body => {
+    const vec = Astronomy.GeoVector(body, initialTime, true);
+    const deg = Astronomy.Ecliptic(vec).elon;
+    prevSigns[body] = Math.floor(((deg % 360) + 360) % 360 / 30);
+  });
+
+  // 1日ずつ進めてサインの変化をチェック
+  while (currDate <= endDate) {
+    const time = Astronomy.MakeTime(currDate);
+
+    targetBodies.forEach(body => {
+      const vec = Astronomy.GeoVector(body, time, true);
+      const deg = Astronomy.Ecliptic(vec).elon;
+      const currentSignIdx = Math.floor(((deg % 360) + 360) % 360 / 30);
+
+      // 前日とサインが変わっていたら記録
+      if (prevSigns[body] !== undefined && prevSigns[body] !== currentSignIdx) {
+        const dateStr = `${currDate.getFullYear()}/${currDate.getMonth() + 1}/${currDate.getDate()}`;
+        const fromSign = signs[prevSigns[body]];
+        const toSign = signs[currentSignIdx];
+
+        ingressEvents.push({
+          date: dateStr,
+          bodyName: bodyNamesJP[body],
+          fromSign: fromSign,
+          toSign: toSign
+        });
+
+        // 最新のサインに更新
+        prevSigns[body] = currentSignIdx;
+      }
+    });
+
+    // 翌日へ進める
+    currDate.setDate(currDate.getDate() + 1);
+  }
+
+  return ingressEvents;
+}

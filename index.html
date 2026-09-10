@@ -68,6 +68,40 @@
       </div>
     </section>
 
+<!-- 分析・各種計算カード -->
+<section class="sephi-card">
+  <h3>分析・各種計算</h3>
+  
+  <!-- 既存のラジオボタンや各種入力欄 -->
+  <!-- ... -->
+
+  <hr style="border: 0; border-top: 1px solid var(--glass-border); margin: 16px 0;">
+
+  <!-- サイン移動（イングレス）入力グループ -->
+  <div id="sign-input-group">
+    <label style="display: block; margin-bottom: 8px; font-weight: bold; font-size: 0.9rem;">
+      🌌 天体のサイン移動（星座移動）検出
+    </label>
+    <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+      <input type="date" id="sign-start-date" style="padding: 8px; border-radius: 8px; background: rgba(9, 10, 22, 0.6); border: 1px solid var(--glass-border); color: var(--text-primary);">
+      <span>〜</span>
+      <input type="date" id="sign-end-date" style="padding: 8px; border-radius: 8px; background: rgba(9, 10, 22, 0.6); border: 1px solid var(--glass-border); color: var(--text-primary);">
+      <button id="sign-btn" class="btn-sephi-primary" style="padding: 8px 16px; border-radius: 12px; cursor: pointer;">
+        サイン移動を抽出
+      </button>
+    </div>
+  </div>
+</section>
+
+    <!-- ここから提示してくれた解析データ結果カードへ続きます -->
+    <section class="sephi-card">
+      <h3 style="margin-bottom: 12px;">データ解析結果</h3>
+      <div id="data-output" style="color: var(--text-secondary); font-size: 0.9rem;">
+        日時または対象月を指定してボタンを押してください。
+      </div>
+      ...
+
+
     <!-- 解析データ＆ランキング表示カード -->
     <section class="sephi-card">
       <h3 style="margin-bottom: 12px;">データ解析結果</h3>
