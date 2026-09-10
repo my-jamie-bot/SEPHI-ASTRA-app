@@ -648,12 +648,9 @@ document.getElementById('rank-btn')?.addEventListener('click', async () => {
   const apiPrompt = `${displayPrompt}
 
 【回答のルール】
-1. この期間のサイン移動の中で「最も大きな影響を与える星の動き」とその意味を詳しく教えて！
+1. 抽出された注目日の中で「最も大きな影響を与える星の動き」とその意味を詳しく教えて！
 2. 時代や世相、個人の意識にどんな切り替えが起きやすくなるか深掘りして解説してね。
 3. 文字数制限を気にせず、ハルに向けてセフィの言葉でたっぷりと情熱を持って語りかけてね！
-
-【サイン移動データ】
-${plainTextEvents}`;
 
 【ランキングデータ】
 ${outputHTML.replace(/<br>/g, '\n').replace(/<[^>]*>/g, '')}`;
@@ -672,7 +669,6 @@ async function fetchSephiResponseCustom(displayPrompt, apiPrompt) {
 
   const sendBtn = document.getElementById('send-btn');
   if (sendBtn) sendBtn.disabled = true; // 送信ボタンをロック
-
   // 1. ユーザーの発言を履歴追加＆画面描画
   addMessageToChat('user', displayPrompt);
 
