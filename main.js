@@ -486,12 +486,12 @@ document.getElementById('calc-btn').addEventListener('click', async () => {
 
   document.getElementById('data-output').innerText = astroSummary;
 
-  // ★ ここで displayPrompt をしっかり定義する
+  // 1. 画面表示用のメッセージ（displayPrompt）を先に定義する
   const displayPrompt = targetMode === 'personal'
     ? 'セフィ、私の個人ホロスコープ（ネイタル）を解読してほしいな！'
     : 'セフィ、この日時の星のデータを解読してほしいな！';
 
-  // ★ apiPrompt を定義する
+  // 2. AI（セフィ）に送るプロンプト（apiPrompt）を定義する
   const apiPrompt = `${displayPrompt}
 
 【回答のルール】
@@ -502,7 +502,7 @@ document.getElementById('calc-btn').addEventListener('click', async () => {
 【解析データ】
 ${astroSummary}`;
 
-  // ★ 定義したあとで関数に渡す
+  // 3. 定義した2つの変数を関数へ渡す
   await fetchSephiResponseCustom(displayPrompt, apiPrompt);
 });
 // --- 個人ホロスコープ計算ロジック ---
