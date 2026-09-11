@@ -580,7 +580,7 @@ document.getElementById('decode-personal-btn')?.addEventListener('click', () => 
 ${planetListStr}
 【個人アスペクト】
 ${aspectStr}`;
-}
+
 
 // --- 月間Top6算出ロジック（選択した始審図動的対応版） ---
 function getMonthlyTop6(year, month) {
