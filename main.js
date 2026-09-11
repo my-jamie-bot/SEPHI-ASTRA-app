@@ -446,9 +446,8 @@ function getJapanTransits(transitPositions, type = 'modern') {
   return `${natal.name}太陽へ: ` + (japanHits.length > 0 ? japanHits.join(' / ') : '直接的なハードヒットなし');
 }
 
-// --- 個人ホロスコープ計算ロジック（エラー解消・完全版） ---
+// --- 個人ホロスコープ計算ロジック（修復完全版） ---
 function calculatePersonalNatalData() {
-  // natal-date または birth-date のどちらのフォーム要素からでも柔軟に値を取得
   const natalInput = document.getElementById('natal-date') || document.getElementById('birth-date');
   const birthDateVal = natalInput ? natalInput.value : '';
   
@@ -461,7 +460,6 @@ function calculatePersonalNatalData() {
     return null;
   }
 
-  // datetime-local 形式（YYYY-MM-DDTHH:mm）と date 形式（YYYY-MM-DD）の両方に対応
   let birthDate;
   if (birthDateVal.includes('T')) {
     birthDate = new Date(birthDateVal);
@@ -479,50 +477,22 @@ function calculatePersonalNatalData() {
 
   const time = Astronomy.MakeTime(birthDate);
 
-  const bodies = ['Sun', 'Moon', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn', 'Uranus', 'Neptune', 'Pluto'];
   const bodyNamesJP = { 
     Sun: '太陽', Moon: '月', Mercury: '水星', Venus: '金星', Mars: '火星', 
-    Jupiter: '木星', Saturn: '土星', Uranus: '天王星', Neptune: '海王星', Pluto: '冥王星'
+    Jupiter: '木星', Saturn: '土星', Node: 'ドラゴンヘッド', SouthNode: 'ドラゴンテイル',
+    Uranus: '天王星', Neptune: '海王星', Pluto: '冥王星'
   };
 
   const positions = {};
-  bodies.forEach(b => {
-    positions[b] = Astronomy.Ecliptic(Astronomy.GeoVector(b, time, true)).elon;
-  });
 
-  // 星のメッセージ（計算結果テキスト）を生成
-  let calculatedDataResult = `<strong style="color: var(--accent-color, #a855f7);">【個人ネイタル天体配置】</strong><br>`;
-  calculatedDataResult += `<span style="font-size: 0.8rem; color: var(--text-secondary);">日時: ${birthDate.toLocaleString('ja-JP')} / 出生窓: ${locationVal}</span><br><br>`;
-
-  bodies.forEach(b => {
-    const deg = positions[b];
-    const signNames = ['牡羊座', '牡牛座', '双子座', '蟹座', '獅子座', '乙女座', '天秤座', '蠍座', '射手座', '山羊座', '水瓶座', '魚座'];
-    const signIndex = Math.floor(deg / 30);
-    const signDeg = (deg % 30).toFixed(2);
-    calculatedDataResult += `<div style="font-size: 0.9rem; color: var(--text-primary);">・${bodyNamesJP[b]}: ${signNames[signIndex]} ${signDeg}°</div>`;
-  });
-
-  // 最終的なデータ出力（エラーを起こしていた箇所を安全に出力）
-  const outputEl = document.getElementById('data-output');
-  if (outputEl) {
-    const outputHeader = typeof outputHeader !== 'undefined' ? outputHeader : '';
-    outputEl.innerHTML = outputHeader + calculatedDataResult;
-  }
-
-  return calculatedDataResult;
-}
-
-// 解読ボタンのイベントバインド（ボタンクリックで起動）
-document.getElementById('decode-personal-btn')?.addEventListener('click', () => {
-  calculatePersonalNatalData();
-});  
-  // 7天体の位置計算
-  bodies.forEach(body => {
+  // 1. 7天体 ＋ トランスサタニアンの計算
+  const calcBodies = ['Sun', 'Moon', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn', 'Uranus', 'Neptune', 'Pluto'];
+  calcBodies.forEach(body => {
     const vec = Astronomy.GeoVector(body, time, true);
     positions[body] = Astronomy.Ecliptic(vec).elon;
   });
 
-  // ★ドラゴンヘッド（True Node ＋1.1度補正で14.4度に一致）とドラゴンテイルの計算
+  // 2. ドラゴンヘッド＆ドラゴンテイルの計算
   const nodeSearch = Astronomy.SearchMoonNode(time);
   const nodeVector = Astronomy.GeoVector('Moon', nodeSearch.time, true);
   let trueNodeDeg = (Astronomy.Ecliptic(nodeVector).elon + 1.1) % 360;
@@ -530,56 +500,91 @@ document.getElementById('decode-personal-btn')?.addEventListener('click', () => 
   positions['Node'] = trueNodeDeg;
   positions['SouthNode'] = (trueNodeDeg + 180) % 360;
 
-  // 天体・度数・サビアン結果の組み立て
+  // 3. 天体配置・サビアン情報の組み立て
   let planetListStr = '';
   const allTargetBodies = ['Sun', 'Moon', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn', 'Node', 'SouthNode'];
   
   allTargetBodies.forEach(b => {
     if (b === 'Moon' && isTimeUnknown) {
-      planetListStr += `・月: ※出生時間不明のため度数は参考値\n`;
+      planetListStr += `・月: ※出生時間不明のため度数は参考値<br>`;
       return;
     }
-    const info = getSabianInfo(positions[b]);
-    planetListStr += `・${bodyNamesJP[b]}: ${info.sign} ${info.degInSign}° [数え${info.countDegree}度] ➔ サビアン:「${info.symbol}」\n`;
+    
+    // getSabianInfo 関数が存在する場合の安全呼び出し
+    if (typeof getSabianInfo === 'function') {
+      const info = getSabianInfo(positions[b]);
+      planetListStr += `・${bodyNamesJP[b]}: ${info.sign} ${info.degInSign}° [数え${info.countDegree}度] ➔ サビアン:「${info.symbol}」<br>`;
+    } else {
+      const signNames = ['牡羊座', '牡牛座', '双子座', '蟹座', '獅子座', '乙女座', '天秤座', '蠍座', '射手座', '山羊座', '水瓶座', '魚座'];
+      const signIdx = Math.floor(positions[b] / 30);
+      const signDeg = (positions[b] % 30).toFixed(2);
+      planetListStr += `・${bodyNamesJP[b]}: ${signNames[signIdx]} ${signDeg}°<br>`;
+    }
   });
 
-  // 個人ネイタルアスペクトの検出
+  // 4. 個人ネイタルアスペクトの検出
   const aspectsFound = [];
   const aspectTypes = [
     { name: '合(0°)', angle: 0, orb: 6 },
-    { name: '90°', angle: 90, orb: 6 },
-    { name: '180°', angle: 180, orb: 6 },
-    { name: '120°', angle: 120, orb: 5 },
-    { name: '60°', angle: 60, orb: 4 }
+    { name: '方形(90°)', angle: 90, orb: 6 },
+    { name: '衝(180°)', angle: 180, orb: 6 },
+    { name: '三分(120°)', angle: 120, orb: 5 },
+    { name: '六分(60°)', angle: 60, orb: 4 }
   ];
 
   for (let i = 0; i < allTargetBodies.length; i++) {
     for (let j = i + 1; j < allTargetBodies.length; j++) {
       const b1 = allTargetBodies[i];
       const b2 = allTargetBodies[j];
+      
       if ((b1 === 'Moon' || b2 === 'Moon') && isTimeUnknown) continue;
+      if ((b1 === 'Node' && b2 === 'SouthNode') || (b1 === 'SouthNode' && b2 === 'Node')) continue;
 
       let diff = Math.abs(positions[b1] - positions[b2]);
       if (diff > 180) diff = 360 - diff;
 
       aspectTypes.forEach(asp => {
         if (Math.abs(diff - asp.angle) <= asp.orb) {
-          aspectsFound.push(`${bodyNamesJP[b1]}-${bodyNamesJP[b2]} (${asp.name})`);
+          const name1 = bodyNamesJP[b1] || b1;
+          const name2 = bodyNamesJP[b2] || b2;
+          aspectsFound.push(`${name1}-${name2} (${asp.name})`);
         }
       });
     }
   }
 
-  const aspectStr = aspectsFound.length > 0 ? aspectsFound.join(' / ') : '主要アスペクトなし';
+  const aspectStr = aspectsFound.length > 0 ? aspectsFound.join('<br>・') : '主要アスペクトなし';
 
-  return `【個人ネイタルホロスコープ解析】
-【生年月日・時間】${birthDateVal} ${birthTimeVal} (${isTimeUnknown ? '時間不明' : '時間指定'})
-【出生地】${locationVal}
+  // 5. 結果画面の出力生成
+  const resultHTML = `
+    <strong style="color: var(--accent-color, #a855f7);">【個人ネイタルホロスコープ解析】</strong><br>
+    <span style="font-size: 0.8rem; color: var(--text-secondary);">
+      生年月日・時間: ${birthDateVal} ${birthTimeVal} (${isTimeUnknown ? '時間不明' : '時間指定'}) / 出生地: ${locationVal}
+    </span><br><br>
+    
+    <strong>✦ 天体配置＆サビアンシンボル</strong><br>
+    <div style="padding-left: 8px; font-size: 0.85rem; color: var(--text-primary); margin-top: 4px;">
+      ${planetListStr}
+    </div><br>
+    
+    <strong>✦ 個人アスペクト</strong><br>
+    <div style="padding-left: 8px; font-size: 0.9rem; color: var(--text-primary); margin-top: 4px;">
+      ・${aspectStr}
+    </div>
+  `;
 
-【天体配置＆サビアンシンボル】
-${planetListStr}
-【個人アスペクト】
-${aspectStr}`;
+  const outputEl = document.getElementById('data-output');
+  if (outputEl) {
+    outputEl.innerHTML = resultHTML;
+  }
+
+  return resultHTML;
+}
+
+// 解読ボタンのイベントバインド
+document.getElementById('decode-personal-btn')?.addEventListener('click', () => {
+  calculatePersonalNatalData();
+});
 
 
 // --- 月間Top6算出ロジック（選択した始審図動的対応版） ---
