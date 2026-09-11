@@ -380,28 +380,6 @@ window.addEventListener('DOMContentLoaded', () => {
   initTargetSelector();
 });
 
-// --- 分析対象（ラジオボタン）切り替えとUI制御 ---
-function initTargetSelector() {
-  const radios = document.querySelectorAll('input[name="astro-target"]');
-  const mundenGroup = document.getElementById('munden-input-group');
-  const personalGroup = document.getElementById('personal-input-group');
-  const mundenRankGroup = document.getElementById('munden-rank-group');
-
-  radios.forEach(radio => {
-    radio.addEventListener('change', (e) => {
-      const mode = e.target.value;
-      if (mode === 'personal') {
-        if (mundenGroup) mundenGroup.style.display = 'none';
-        if (personalGroup) personalGroup.style.display = 'flex';
-        if (mundenRankGroup) mundenRankGroup.style.display = 'none';
-      } else {
-        if (mundenGroup) mundenGroup.style.display = 'block';
-        if (personalGroup) personalGroup.style.display = 'none';
-        if (mundenRankGroup) mundenRankGroup.style.display = 'block';
-      }
-    });
-  });
-}
 
 // --- 日本の3大始審図データ（10天体精密度数） ---
 const JAPAN_CHARTS = {
@@ -1059,25 +1037,47 @@ ${plainTextEvents}`;
 });
 
 
-// --- 1. ラジオボタン切替イベント ---
+// --- 分析対象（ラジオボタン）切り替えとUI制御（完全統合版） ---
 document.querySelectorAll('input[name="astro-target"]').forEach(radio => {
   radio.addEventListener('change', (e) => {
+    const mode = e.target.value; // 'global', 'japan', 'personal'
+    
     const japanGroup = document.getElementById('japan-chart-group');
     const personalGroup = document.getElementById('personal-input-group');
     const mundenGroup = document.getElementById('munden-input-group');
+    const mundenRankGroup = document.getElementById('munden-rank-group');
 
-    // 初期化
+    // 1. まずすべて非表示にして初期化
     if (japanGroup) japanGroup.style.display = 'none';
     if (personalGroup) personalGroup.style.display = 'none';
+    if (mundenGroup) mundenGroup.style.display = 'block';
+    if (mundenRankGroup) mundenRankGroup.style.display = 'block';
 
-    if (e.target.value === 'japan') {
+    // 2. 選択されたモードに応じて必要な要素だけ表示切替
+    if (mode === 'japan') {
       if (japanGroup) japanGroup.style.display = 'block';
-    } else if (e.target.value === 'personal') {
-      if (personalGroup) personalGroup.style.display = 'flex';
+    } else if (mode === 'personal') {
+      if (personalGroup) personalGroup.style.display = 'block';
+      if (mundenGroup) mundenGroup.style.display = 'none';
+      if (mundenRankGroup) mundenRankGroup.style.display = 'none';
     }
   });
 });
 
+// --- 期間指定 N × T アスペクト実行ボタンのイベント設定 ---
+document.getElementById('calc-personal-aspects-btn')?.addEventListener('click', () => {
+  const natalVal = document.getElementById('natal-date')?.value;
+  const startVal = document.getElementById('aspect-start-date')?.value;
+  const endVal = document.getElementById('aspect-end-date')?.value;
+
+  if (!natalVal || !startVal || !endVal) {
+    alert('生年月日、開始日、終了日をすべて選択してください。');
+    return;
+  }
+
+  const resultHTML = getNTAspectsInPeriod(startVal, endVal, natalVal);
+  document.getElementById('data-output').innerHTML = resultHTML;
+});
 // --- 2. 日本の始審図ごとの象徴（注釈データ）定義 ---
 const JAPAN_CHART_INFO = {
   '1946-10-07': {
@@ -1113,4 +1113,90 @@ if (selectedTarget === 'japan') {
 const outputEl = document.getElementById('data-output');
 if (outputEl) {
   outputEl.innerHTML = outputHeader + calculatedDataResult; // 注釈 ＋ 星の計算結果
+}
+
+// --- 個人ネイタル天体位置の動的計算 ---
+function getNatalPositions(natalDateObj) {
+  const time = Astronomy.MakeTime(natalDateObj);
+  const bodies = ['Sun', 'Moon', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn', 'Uranus', 'Neptune', 'Pluto'];
+  const positions = {};
+  
+  bodies.forEach(b => {
+    positions[b] = Astronomy.Ecliptic(Astronomy.GeoVector(b, time, true)).elon;
+  });
+  return positions;
+}
+
+// --- 期間指定 N × T アスペクト一括抽出ロジック ---
+function getNTAspectsInPeriod(startDateStr, endDateStr, natalDateStr) {
+  const start = new Date(startDateStr);
+  const end = new Date(endDateStr);
+  const natalDate = new Date(natalDateStr);
+
+  if (isNaN(start) || isNaN(end) || isNaN(natalDate)) {
+    return '日付を正しく設定してください。';
+  }
+
+  // ネイタル天体度の計算
+  const natalPositions = getNatalPositions(natalDate);
+  const bodyNamesJP = { Sun: '太陽', Moon: '月', Mercury: '水星', Venus: '金星', Mars: '火星', Jupiter: '木星', Saturn: '土星', Uranus: '天王星', Neptune: '海王星', Pluto: '冥王星' };
+  
+  const aspectDefs = [
+    { name: '合(0°)', angle: 0, orb: 2 },
+    { name: '衝(180°)', angle: 180, orb: 2 },
+    { name: '方形(90°)', angle: 90, orb: 2 },
+    { name: '三分(120°)', angle: 120, orb: 2 },
+    { name: '六分(60°)', angle: 60, orb: 1.5 }
+  ];
+
+  const results = [];
+  const current = new Date(start);
+
+  // 指定期間を1日ずつスキャン
+  while (current <= end) {
+    const time = Astronomy.MakeTime(current);
+    const transitPositions = {};
+    
+    Object.keys(bodyNamesJP).forEach(b => {
+      transitPositions[b] = Astronomy.Ecliptic(Astronomy.GeoVector(b, time, true)).elon;
+    });
+
+    // 重要なトランジット天体（木星〜冥王星 ＋ 太陽・火星）を中心に判定
+    const targetTransits = ['Sun', 'Mars', 'Jupiter', 'Saturn', 'Uranus', 'Neptune', 'Pluto'];
+
+    targetTransits.forEach(tBody => {
+      Object.keys(natalPositions).forEach(nBody => {
+        let diff = Math.abs(transitPositions[tBody] - natalPositions[nBody]);
+        if (diff > 180) diff = 360 - diff;
+
+        aspectDefs.forEach(asp => {
+          if (Math.abs(diff - asp.angle) <= asp.orb) {
+            const dateFormatted = `${current.getFullYear()}/${current.getMonth() + 1}/${current.getDate()}`;
+            results.push({
+              date: dateFormatted,
+              detail: `T${bodyNamesJP[tBody]} - N${bodyNamesJP[nBody]} ${asp.name}`
+            });
+          }
+        });
+      });
+    });
+
+    current.setDate(current.getDate() + 1); // 翌日へ
+  }
+
+  if (results.length === 0) return '指定期間内に顕著な N × T アスペクトは見つかりませんでした。';
+
+  // 重複ログの簡略化と整形
+  let htmlOutput = `<strong>【N × T 注目アスペクト タイムライン】</strong><br><br>`;
+  let lastDate = '';
+
+  results.forEach(item => {
+    if (item.date !== lastDate) {
+      htmlOutput += `<br><strong>📅 ${item.date}</strong><br>`;
+      lastDate = item.date;
+    }
+    htmlOutput += ` ・${item.detail}<br>`;
+  });
+
+  return htmlOutput;
 }

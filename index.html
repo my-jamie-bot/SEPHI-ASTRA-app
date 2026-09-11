@@ -30,6 +30,7 @@
         <label style="cursor: pointer; font-size: 0.85rem; color: var(--text-primary);"><input type="radio" name="astro-target" value="personal" style="accent-color: var(--accent-color, #a855f7);"> 個人ホロスコープ</label>
       </div>
 
+
 <!-- ★ここに追加！日本（世相）選択時のみ表示する始審図切替グループ -->
       <div id="japan-chart-group" style="display: none; margin-bottom: 12px;">
         <label style="font-size: 0.85rem; color: var(--text-secondary);">✦ 日本の始審図（建国チャート）を選択:</label>
@@ -40,6 +41,31 @@
         </select>
       </div>
 
+<!-- ★個人ホロスコープ選択時のみ表示するグループ（ここに追加！） -->
+      <div id="personal-input-group" style="display: none; margin-bottom: 16px; padding: 12px; background: rgba(255, 255, 255, 0.05); border-radius: 10px; border: 1px solid var(--glass-border);">
+        <strong style="font-size: 0.85rem; color: var(--accent-color, #a855f7);">✦ 個人ネイタルデータ設定</strong>
+        <div style="margin-top: 8px;">
+          <label style="font-size: 0.75rem; color: var(--text-secondary);">生年月日・時間:</label>
+          <input type="datetime-local" id="natal-date" value="1995-01-01T12:00" style="width: 100%; padding: 8px; border-radius: 8px; background: rgba(9, 10, 22, 0.6); border: 1px solid var(--glass-border); color: var(--text-primary); margin-top: 4px;">
+        </div>
+
+        <hr style="border: 0; border-top: 1px dashed rgba(255,255,255,0.1); margin: 12px 0;">
+
+        <strong style="font-size: 0.85rem; color: var(--accent-color, #a855f7);">✦ 期間指定 N × T アスペクト抽出</strong>
+        <div style="display: flex; gap: 8px; margin-top: 8px;">
+          <div style="flex: 1;">
+            <label style="font-size: 0.75rem; color: var(--text-secondary);">開始日:</label>
+            <input type="date" id="aspect-start-date" style="width: 100%; padding: 8px; border-radius: 8px; background: rgba(9, 10, 22, 0.6); border: 1px solid var(--glass-border); color: var(--text-primary); margin-top: 4px;">
+          </div>
+          <div style="flex: 1;">
+            <label style="font-size: 0.75rem; color: var(--text-secondary);">終了日:</label>
+            <input type="date" id="aspect-end-date" style="width: 100%; padding: 8px; border-radius: 8px; background: rgba(9, 10, 22, 0.6); border: 1px solid var(--glass-border); color: var(--text-primary); margin-top: 4px;">
+          </div>
+        </div>
+        <button id="calc-personal-aspects-btn" style="width: 100%; margin-top: 12px; padding: 10px; border-radius: 8px; background: var(--accent-color, #a855f7); color: white; border: none; cursor: pointer; font-weight: bold; font-size: 0.85rem;">
+          期間中の N × T アスペクトを抽出
+        </button>
+      </div>
 
       <!-- マンデン／日時解読用入力グループ -->
       <div id="munden-input-group">
