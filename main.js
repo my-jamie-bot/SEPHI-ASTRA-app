@@ -1037,7 +1037,7 @@ ${plainTextEvents}`;
 });
 
 
-// --- 分析対象（ラジオボタン）切り替えとUI制御（完全統合版） ---
+// --- 分析対象（ラジオボタン）切り替え制御 ---
 document.querySelectorAll('input[name="astro-target"]').forEach(radio => {
   radio.addEventListener('change', (e) => {
     const mode = e.target.value; // 'global', 'japan', 'personal'
@@ -1047,23 +1047,25 @@ document.querySelectorAll('input[name="astro-target"]').forEach(radio => {
     const mundenGroup = document.getElementById('munden-input-group');
     const mundenRankGroup = document.getElementById('munden-rank-group');
 
-    // 1. まずすべて非表示にして初期化
-    if (japanGroup) japanGroup.style.display = 'none';
-    if (personalGroup) personalGroup.style.display = 'none';
-    if (mundenGroup) mundenGroup.style.display = 'block';
-    if (mundenRankGroup) mundenRankGroup.style.display = 'block';
-
-    // 2. 選択されたモードに応じて必要な要素だけ表示切替
-    if (mode === 'japan') {
-      if (japanGroup) japanGroup.style.display = 'block';
-    } else if (mode === 'personal') {
+    if (mode === 'personal') {
+      if (japanGroup) japanGroup.style.display = 'none';
       if (personalGroup) personalGroup.style.display = 'block';
-      if (mundenGroup) mundenGroup.style.display = 'none';
+      if (mundenGroup) mundenGroup.style.display = 'none'; // マンデン用入力＆解読ボタンを隠す
       if (mundenRankGroup) mundenRankGroup.style.display = 'none';
+    } else if (mode === 'japan') {
+      if (japanGroup) japanGroup.style.display = 'block';
+      if (personalGroup) personalGroup.style.display = 'none';
+      if (mundenGroup) mundenGroup.style.display = 'block';
+      if (mundenRankGroup) mundenRankGroup.style.display = 'block';
+    } else {
+      // global
+      if (japanGroup) japanGroup.style.display = 'none';
+      if (personalGroup) personalGroup.style.display = 'none';
+      if (mundenGroup) mundenGroup.style.display = 'block';
+      if (mundenRankGroup) mundenRankGroup.style.display = 'block';
     }
   });
 });
-
 // --- 期間指定 N × T アスペクト実行ボタンのイベント設定 ---
 document.getElementById('calc-personal-aspects-btn')?.addEventListener('click', () => {
   const natalVal = document.getElementById('natal-date')?.value;
