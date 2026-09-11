@@ -1127,7 +1127,7 @@ function getNatalPositions(natalDateObj) {
   return positions;
 }
 
-// --- 期間指定 N × T アスペクト一括抽出ロジック ---
+// --- 期間指定 N × T アスペクト抽出ロジック（天体絞り込み版） ---
 function getNTAspectsInPeriod(startDateStr, endDateStr, natalDateStr) {
   const start = new Date(startDateStr);
   const end = new Date(endDateStr);
@@ -1137,15 +1137,29 @@ function getNTAspectsInPeriod(startDateStr, endDateStr, natalDateStr) {
     return '日付を正しく設定してください。';
   }
 
-  // ネイタル天体度の計算
-  const natalPositions = getNatalPositions(natalDate);
-  const bodyNamesJP = { Sun: '太陽', Moon: '月', Mercury: '水星', Venus: '金星', Mars: '火星', Jupiter: '木星', Saturn: '土星', Uranus: '天王星', Neptune: '海王星', Pluto: '冥王星' };
+  // ネイタル天体の指定（太陽、水星、金星、火星、木星、土星）
+  const natalBodies = ['Sun', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn'];
   
+  // トランジット天体の指定（木星、土星、天王星、海王星、冥王星）
+  const transitBodies = ['Jupiter', 'Saturn', 'Uranus', 'Neptune', 'Pluto'];
+
+  const timeNatal = Astronomy.MakeTime(natalDate);
+  const natalPositions = {};
+  natalBodies.forEach(b => {
+    natalPositions[b] = Astronomy.Ecliptic(Astronomy.GeoVector(b, timeNatal, true)).elon;
+  });
+
+  const bodyNamesJP = { 
+    Sun: '太陽', Moon: '月', Mercury: '水星', Venus: '金星', Mars: '火星', 
+    Jupiter: '木星', Saturn: '土星', Uranus: '天王星', Neptune: '海王星', Pluto: '冥王星' 
+  };
+  
+  // アスペクト定義（メジャーアスペクト ＋ タイトめのオーブ設定）
   const aspectDefs = [
-    { name: '合(0°)', angle: 0, orb: 2 },
-    { name: '衝(180°)', angle: 180, orb: 2 },
-    { name: '方形(90°)', angle: 90, orb: 2 },
-    { name: '三分(120°)', angle: 120, orb: 2 },
+    { name: '合(0°)', angle: 0, orb: 2.0 },
+    { name: '衝(180°)', angle: 180, orb: 2.0 },
+    { name: '方形(90°)', angle: 90, orb: 2.0 },
+    { name: '三分(120°)', angle: 120, orb: 2.0 },
     { name: '六分(60°)', angle: 60, orb: 1.5 }
   ];
 
@@ -1157,15 +1171,13 @@ function getNTAspectsInPeriod(startDateStr, endDateStr, natalDateStr) {
     const time = Astronomy.MakeTime(current);
     const transitPositions = {};
     
-    Object.keys(bodyNamesJP).forEach(b => {
+    transitBodies.forEach(b => {
       transitPositions[b] = Astronomy.Ecliptic(Astronomy.GeoVector(b, time, true)).elon;
     });
 
-    // 重要なトランジット天体（木星〜冥王星 ＋ 太陽・火星）を中心に判定
-    const targetTransits = ['Sun', 'Mars', 'Jupiter', 'Saturn', 'Uranus', 'Neptune', 'Pluto'];
-
-    targetTransits.forEach(tBody => {
-      Object.keys(natalPositions).forEach(nBody => {
+    // 絞り込んだ組み合わせ（T: 5天体 × N: 6天体）で判定
+    transitBodies.forEach(tBody => {
+      natalBodies.forEach(nBody => {
         let diff = Math.abs(transitPositions[tBody] - natalPositions[nBody]);
         if (diff > 180) diff = 360 - diff;
 
@@ -1184,18 +1196,22 @@ function getNTAspectsInPeriod(startDateStr, endDateStr, natalDateStr) {
     current.setDate(current.getDate() + 1); // 翌日へ
   }
 
-  if (results.length === 0) return '指定期間内に顕著な N × T アスペクトは見つかりませんでした。';
+  if (results.length === 0) {
+    return '<div style="padding: 12px; color: var(--text-secondary);">指定期間内に該当する主要な N × T アスペクトは見つかりませんでした。</div>';
+  }
 
-  // 重複ログの簡略化と整形
-  let htmlOutput = `<strong>【N × T 注目アスペクト タイムライン】</strong><br><br>`;
+  // 日付順に整理して出力
+  let htmlOutput = `<strong style="color: var(--accent-color, #a855f7);">【N × T 注目アスペクト タイムライン】</strong><br>`;
+  htmlOutput += `<span style="font-size: 0.8rem; color: var(--text-secondary);">対象：(T) 木星〜冥王星 × (N) 太陽〜土星</span><br><br>`;
+  
   let lastDate = '';
 
   results.forEach(item => {
     if (item.date !== lastDate) {
-      htmlOutput += `<br><strong>📅 ${item.date}</strong><br>`;
+      htmlOutput += `<div style="margin-top: 8px; font-weight: bold; color: var(--text-primary);">📅 ${item.date}</div>`;
       lastDate = item.date;
     }
-    htmlOutput += ` ・${item.detail}<br>`;
+    htmlOutput += `<div style="padding-left: 12px; font-size: 0.9rem; color: var(--text-secondary);">・${item.detail}</div>`;
   });
 
   return htmlOutput;
