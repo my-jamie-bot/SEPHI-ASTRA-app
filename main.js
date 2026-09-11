@@ -446,33 +446,76 @@ function getJapanTransits(transitPositions, type = 'modern') {
   return `${natal.name}太陽へ: ` + (japanHits.length > 0 ? japanHits.join(' / ') : '直接的なハードヒットなし');
 }
 
-// --- 個人ホロスコープ計算ロジック（修正完全版） ---
+// --- 個人ホロスコープ計算ロジック（エラー解消・完全版） ---
 function calculatePersonalNatalData() {
-  const birthDateVal = document.getElementById('birth-date').value;
-  const isTimeUnknown = document.getElementById('birth-time-unknown').checked;
-  let birthTimeVal = document.getElementById('birth-time').value;
-  const locationVal = document.getElementById('birth-location').value || '未指定';
+  // natal-date または birth-date のどちらのフォーム要素からでも柔軟に値を取得
+  const natalInput = document.getElementById('natal-date') || document.getElementById('birth-date');
+  const birthDateVal = natalInput ? natalInput.value : '';
+  
+  const isTimeUnknown = document.getElementById('birth-time-unknown')?.checked || false;
+  let birthTimeVal = document.getElementById('birth-time')?.value || '';
+  const locationVal = document.getElementById('birth-location')?.value || '未指定';
 
   if (!birthDateVal) {
     alert('生年月日を入力してください。');
     return null;
   }
 
-  if (isTimeUnknown || !birthTimeVal) {
-    birthTimeVal = '12:00';
+  // datetime-local 形式（YYYY-MM-DDTHH:mm）と date 形式（YYYY-MM-DD）の両方に対応
+  let birthDate;
+  if (birthDateVal.includes('T')) {
+    birthDate = new Date(birthDateVal);
+  } else {
+    if (isTimeUnknown || !birthTimeVal) {
+      birthTimeVal = '12:00';
+    }
+    birthDate = new Date(`${birthDateVal}T${birthTimeVal}`);
   }
 
-  const birthDate = new Date(`${birthDateVal}T${birthTimeVal}`);
+  if (isNaN(birthDate)) {
+    alert('生年月日・時間の形式が正しくありません。');
+    return null;
+  }
+
   const time = Astronomy.MakeTime(birthDate);
 
-  const bodies = ['Sun', 'Moon', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn'];
+  const bodies = ['Sun', 'Moon', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn', 'Uranus', 'Neptune', 'Pluto'];
   const bodyNamesJP = { 
     Sun: '太陽', Moon: '月', Mercury: '水星', Venus: '金星', Mars: '火星', 
-    Jupiter: '木星', Saturn: '土星', Node: 'ドラゴンヘッド', SouthNode: 'ドラゴンテイル' 
+    Jupiter: '木星', Saturn: '土星', Uranus: '天王星', Neptune: '海王星', Pluto: '冥王星'
   };
 
   const positions = {};
-  
+  bodies.forEach(b => {
+    positions[b] = Astronomy.Ecliptic(Astronomy.GeoVector(b, time, true)).elon;
+  });
+
+  // 星のメッセージ（計算結果テキスト）を生成
+  let calculatedDataResult = `<strong style="color: var(--accent-color, #a855f7);">【個人ネイタル天体配置】</strong><br>`;
+  calculatedDataResult += `<span style="font-size: 0.8rem; color: var(--text-secondary);">日時: ${birthDate.toLocaleString('ja-JP')} / 出生窓: ${locationVal}</span><br><br>`;
+
+  bodies.forEach(b => {
+    const deg = positions[b];
+    const signNames = ['牡羊座', '牡牛座', '双子座', '蟹座', '獅子座', '乙女座', '天秤座', '蠍座', '射手座', '山羊座', '水瓶座', '魚座'];
+    const signIndex = Math.floor(deg / 30);
+    const signDeg = (deg % 30).toFixed(2);
+    calculatedDataResult += `<div style="font-size: 0.9rem; color: var(--text-primary);">・${bodyNamesJP[b]}: ${signNames[signIndex]} ${signDeg}°</div>`;
+  });
+
+  // 最終的なデータ出力（エラーを起こしていた箇所を安全に出力）
+  const outputEl = document.getElementById('data-output');
+  if (outputEl) {
+    const outputHeader = typeof outputHeader !== 'undefined' ? outputHeader : '';
+    outputEl.innerHTML = outputHeader + calculatedDataResult;
+  }
+
+  return calculatedDataResult;
+}
+
+// 解読ボタンのイベントバインド（ボタンクリックで起動）
+document.getElementById('decode-personal-btn')?.addEventListener('click', () => {
+  calculatePersonalNatalData();
+});  
   // 7天体の位置計算
   bodies.forEach(body => {
     const vec = Astronomy.GeoVector(body, time, true);
@@ -1115,7 +1158,9 @@ if (selectedTarget === 'japan') {
 // 最終的なデータ出力
 const outputEl = document.getElementById('data-output');
 if (outputEl) {
-  outputEl.innerHTML = outputHeader + calculatedDataResult; // 注釈 ＋ 星の計算結果
+  // 定義されていない場合のエラーを防ぐため、安全にフォールバックを設定
+  const resultText = (typeof calculatedDataResult !== 'undefined') ? calculatedDataResult : '';
+  outputEl.innerHTML = outputHeader + resultText; // 注釈 ＋ 星の計算結果
 }
 
 // --- 個人ネイタル天体位置の動的計算 ---
