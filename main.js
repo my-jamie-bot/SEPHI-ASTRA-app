@@ -397,31 +397,35 @@ const JAPAN_CHARTS = {
   }
 };
 
-// --- サビアンシンボル変換処理（数え度数：1度繰り上げ） ---
-function getSabianInfo(degree360) {
-  const signs = ['牡羊座', '牡牛座', '双子座', '蟹座', '獅子座', '乙女座', '天秤座', '蠍座', '射手座', '山羊座', '水瓶座', '魚座'];
-  const normalized = ((degree360 % 360) + 360) % 360;
-  const signIndex = Math.floor(normalized / 30);
-  const signName = signs[signIndex];
-  const degInSign = normalized % 30;
+// --- サビアンシンボル取得ロジック（エラー修復版） ---
+function getSabianInfo(degree) {
+  // 黄道360度から星座とサイン内の度数・数え度数を算出
+  const signNames = ['牡羊座', '牡牛座', '双子座', '蟹座', '獅子座', '乙女座', '天秤座', '蠍座', '射手座', '山羊座', '水瓶座', '魚座'];
+  const signIndex = Math.floor(degree / 30);
+  const sign = signNames[signIndex] || '牡羊座';
   
-  // 1度繰り上げ (数え度数)
-  let countDegree = Math.floor(degInSign) + 1;
-  if (countDegree > 30) countDegree = 30;
+  const degInSign = (degree % 30).toFixed(2);
+  const countDegree = Math.floor(degree % 30) + 1; // 数え度数（切り上げ）
 
-  // 全角数字に変換して辞書検索
-  const zenkakuDeg = String(countDegree).replace(/[0-9]/g, s => String.fromCharCode(s.charCodeAt(0) + 0xfee0));
-  const symbol = SABIAN_DICTIONARY[sabianKey] || SABIAN_DICTIONARY[`${signName}${countDegree}度`] || "（シンボル解析中）";
+  // 辞書参照用のキーを生成（例: "牡羊座_1" または "Aries_1"）
+  // ★ここで sabianKey を正しく定義します
+  const sabianKey = `${sign}_${countDegree}`;
+
+  // サビアンデータ（sabianSymbols等の辞書オブジェクト）から取得
+  let symbolText = 'シンボルデータ準備中';
+  if (typeof sabianSymbols !== 'undefined' && sabianSymbols[sabianKey]) {
+    symbolText = sabianSymbols[sabianKey];
+  } else if (typeof sabianData !== 'undefined' && sabianData[sabianKey]) {
+    symbolText = sabianData[sabianKey];
+  }
 
   return {
-    sign: signName,
-    degInSign: degInSign.toFixed(2),
+    sign: sign,
+    degInSign: degInSign,
     countDegree: countDegree,
-    sabianKey: sabianKey,
-    symbol: symbol
+    symbol: symbolText
   };
 }
-
 // --- 日本始図 × トランジットのアスペクト算出 ---
 function getJapanTransits(transitPositions, type = 'modern') {
   const natal = JAPAN_NATALS[type];
