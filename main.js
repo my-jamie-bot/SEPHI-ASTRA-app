@@ -617,7 +617,7 @@ function calculatePersonalNatalData() {
     positions: positions
   };
 }
-// --- 0. 日時パラメータと time の取得 ---
+/// --- 0. 日時パラメータと time・positions の取得 ---
   const isTimeUnknown = document.getElementById('birth-time-unknown')?.checked || false;
   const natalInput = document.getElementById('natal-date') || document.getElementById('birth-date');
   const birthDateVal = natalInput ? natalInput.value : '';
@@ -625,6 +625,9 @@ function calculatePersonalNatalData() {
   
   const birthDate = new Date(`${birthDateVal}T${isTimeUnknown ? '12:00' : birthTimeVal}`);
   const time = Astronomy.MakeTime(isNaN(birthDate) ? new Date() : birthDate);
+
+  // 👈★ここに格納用のオブジェクトを追加！
+  const positions = {};
 
   // 1. 7天体 ＋ トランスサタニアンの計算
   const calcBodies = ['Sun', 'Moon', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn', 'Uranus', 'Neptune', 'Pluto'];
@@ -638,6 +641,8 @@ function calculatePersonalNatalData() {
   const nodeVector = Astronomy.GeoVector('Moon', nodeSearch.time, true);
   let trueNodeDeg = (Astronomy.Ecliptic(nodeVector).elon + 1.1) % 360;
 
+  positions['Node'] = trueNodeDeg;
+  positions['SouthNode'] = (trueNodeDeg + 180) % 360;
   positions['Node'] = trueNodeDeg;
   positions['SouthNode'] = (trueNodeDeg + 180) % 360;
 
