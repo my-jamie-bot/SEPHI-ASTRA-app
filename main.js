@@ -565,7 +565,10 @@ function calculatePersonalNatalData() {
   
   const isTimeUnknown = document.getElementById('birth-time-unknown')?.checked || false;
   let birthTimeVal = document.getElementById('birth-time')?.value || '';
-  const locationVal = document.getElementById('birth-location')?.value || '未指定';
+  
+  // 出生地入力欄を確実に取得（空文字の場合は '未指定'）
+  const locationInput = document.getElementById('birth-location');
+  const locationVal = (locationInput && locationInput.value.trim() !== '') ? locationInput.value.trim() : '未指定';
 
   if (!birthDateVal) {
     alert('生年月日を入力してください。');
@@ -596,6 +599,17 @@ function calculatePersonalNatalData() {
   };
 
   const positions = {};
+  
+  // 計算結果オブジェクトに locationVal も含めて返す
+  return {
+    time: time,
+    birthDateStr: birthDateVal,
+    birthTimeStr: birthTimeVal,
+    isTimeUnknown: isTimeUnknown,
+    location: locationVal,
+    positions: positions
+  };
+}
 
   // 1. 7天体 ＋ トランスサタニアンの計算
   const calcBodies = ['Sun', 'Moon', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn', 'Uranus', 'Neptune', 'Pluto'];
