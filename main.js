@@ -1278,21 +1278,20 @@ ${plainTextEvents}`;
 // --- 1. ラジオボタン切り替えによる入力UI制御 ---
 document.querySelectorAll('input[name="astro-target"]').forEach(radio => {
   radio.addEventListener('change', (e) => {
-    const target = e.value || e.target.value;
+    const target = e.target.value;
     
-    // 個人ホロスコープ入力欄の表示切り替え
+    // 表示要素の取得
+    const japanGroup = document.getElementById('japan-chart-group');
+    const mundenGroup = document.getElementById('munden-input-group');
     const personalGroup = document.getElementById('personal-input-group');
-    if (personalGroup) {
-      personalGroup.style.display = (target === 'personal') ? 'flex' : 'none';
-    }
 
-    // 月間ランク・アスペクト抽出エリアの表示制御
-    const rankGroup = document.getElementById('munden-rank-group');
-    if (rankGroup) {
-      rankGroup.style.display = 'block'; // 全モード共通で表示
-    }
+    // 各モードに応じた入力欄の表示切り替え
+    if (japanGroup) japanGroup.style.display = (target === 'japan') ? 'block' : 'none';
+    if (mundenGroup) mundenGroup.style.display = (target === 'personal') ? 'none' : 'block';
+    if (personalGroup) personalGroup.style.display = (target === 'personal') ? 'flex' : 'none';
   });
 });
+
 // --- 期間指定 N × T アスペクト実行ボタンのイベント設定 ---
 document.getElementById('calc-personal-aspects-btn')?.addEventListener('click', () => {
   const natalVal = document.getElementById('natal-date')?.value;

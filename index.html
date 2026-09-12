@@ -25,13 +25,12 @@
       <!-- 分析対象の切替ラジオボタン -->
       <div class="target-selector" style="margin-bottom: 16px; padding: 8px 12px; background: rgba(255, 255, 255, 0.05); border-radius: 8px; display: flex; gap: 16px; align-items: center; flex-wrap: wrap;">
         <span style="font-size: 0.85rem; color: var(--text-secondary);">✦ 分析対象:</span>
-        <label style="cursor: pointer; font-size: 0.85rem; color: var(--text-primary);"><input type="radio" name="astro-target" value="global" checked style="accent-color: var(--accent-color, #a855f7);"> 地球（全体運）</label>
+        <label style="cursor: pointer; font-size: 0.85rem; color: var(--text-primary);"><input type="radio" name="astro-target" value="earth" checked style="accent-color: var(--accent-color, #a855f7);"> 地球（全体運）</label>
         <label style="cursor: pointer; font-size: 0.85rem; color: var(--text-primary);"><input type="radio" name="astro-target" value="japan" style="accent-color: var(--accent-color, #a855f7);"> 日本（世相・マンデン）</label>
         <label style="cursor: pointer; font-size: 0.85rem; color: var(--text-primary);"><input type="radio" name="astro-target" value="personal" style="accent-color: var(--accent-color, #a855f7);"> 個人ホロスコープ</label>
       </div>
 
-
-<!-- ★ここに追加！日本（世相）選択時のみ表示する始審図切替グループ -->
+      <!-- 日本選択時のみ表示する始審図切替グループ -->
       <div id="japan-chart-group" style="display: none; margin-bottom: 12px;">
         <label style="font-size: 0.85rem; color: var(--text-secondary);">✦ 日本の始審図（建国チャート）を選択:</label>
         <select id="japan-chart-type" style="width: 100%; padding: 10px; border-radius: 10px; background: rgba(9, 10, 22, 0.6); border: 1px solid var(--glass-border); color: var(--text-primary); margin-top: 4px;">
@@ -41,61 +40,36 @@
         </select>
       </div>
 
-<!-- ★個人ホロスコープ選択時のみ表示するグループ（ここに追加！） -->
-      <div id="personal-input-group" style="display: none; margin-bottom: 16px; padding: 12px; background: rgba(255, 255, 255, 0.05); border-radius: 10px; border: 1px solid var(--glass-border);">
-        <strong style="font-size: 0.85rem; color: var(--accent-color, #a855f7);">✦ 個人ネイタルデータ設定</strong>
-        <div style="margin-top: 8px;">
-          <label style="font-size: 0.75rem; color: var(--text-secondary);">生年月日・時間:</label>
-          <input type="datetime-local" id="natal-date" value="1995-01-01T12:00" style="width: 100%; padding: 8px; border-radius: 8px; background: rgba(9, 10, 22, 0.6); border: 1px solid var(--glass-border); color: var(--text-primary); margin-top: 4px;">
-        </div>
-
-<!-- ★ここへボタンを移動！ -->
-  <button id="decode-personal-btn" style="width: 100%; margin-top: 10px; padding: 10px; border-radius: 20px; background: rgba(255, 255, 255, 0.1); border: 1px solid #a855f7; color: white; cursor: pointer; font-weight: bold; font-size: 0.85rem;">
-    ✦ この日時の星のメッセージを解読する
-  </button>
-
-
-        <hr style="border: 0; border-top: 1px dashed rgba(255,255,255,0.1); margin: 12px 0;">
-
-        <strong style="font-size: 0.85rem; color: var(--accent-color, #a855f7);">✦ 期間指定 N × T アスペクト抽出</strong>
-        <div style="display: flex; gap: 8px; margin-top: 8px;">
-          <div style="flex: 1;">
-            <label style="font-size: 0.75rem; color: var(--text-secondary);">開始日:</label>
-            <input type="date" id="aspect-start-date" style="width: 100%; padding: 8px; border-radius: 8px; background: rgba(9, 10, 22, 0.6); border: 1px solid var(--glass-border); color: var(--text-primary); margin-top: 4px;">
-          </div>
-          <div style="flex: 1;">
-            <label style="font-size: 0.75rem; color: var(--text-secondary);">終了日:</label>
-            <input type="date" id="aspect-end-date" style="width: 100%; padding: 8px; border-radius: 8px; background: rgba(9, 10, 22, 0.6); border: 1px solid var(--glass-border); color: var(--text-primary); margin-top: 4px;">
-          </div>
-        </div>
-        <button id="calc-personal-aspects-btn" style="width: 100%; margin-top: 12px; padding: 10px; border-radius: 8px; background: var(--accent-color, #a855f7); color: white; border: none; cursor: pointer; font-weight: bold; font-size: 0.85rem;">
-          期間中の N × T アスペクトを抽出
-        </button>
-      </div>
-
-      <!-- マンデン／日時解読用入力グループ -->
+      <!-- マンデン／地球・日本用入力グループ -->
       <div id="munden-input-group">
         <label style="font-size: 0.85rem; color: var(--text-secondary);">特定の日時を解読:</label>
         <input type="datetime-local" id="target-datetime" value="2026-09-09T12:00" 
                style="width: 100%; padding: 12px; border-radius: 10px; background: rgba(9, 10, 22, 0.6); border: 1px solid var(--glass-border); color: var(--text-primary); margin-bottom: 12px;">
       </div>
 
-      <!-- 個人ホロスコープ用入力グループ（初期状態は非表示） -->
-      <div id="personal-input-group" style="display: none; flex-direction: column; gap: 10px; margin-bottom: 12px;">
+      <!-- 個人ホロスコープ選択時のみ表示するグループ -->
+      <div id="personal-input-group" style="display: none; flex-direction: column; gap: 10px; margin-bottom: 12px; width: 100%;">
         <label style="font-size: 0.85rem; color: var(--text-secondary);">生年月日・出生時間・出生地を入力:</label>
-        <div style="display: flex; gap: 8px;">
-          <input type="date" id="birth-date" style="flex: 1; padding: 10px; border-radius: 10px; background: rgba(9, 10, 22, 0.6); border: 1px solid var(--glass-border); color: var(--text-primary);">
-          <input type="time" id="birth-time" style="flex: 1; padding: 10px; border-radius: 10px; background: rgba(9, 10, 22, 0.6); border: 1px solid var(--glass-border); color: var(--text-primary);">
+        
+        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+          <input type="date" id="birth-date" style="flex: 1; min-width: 140px; padding: 10px; border-radius: 10px; background: rgba(9, 10, 22, 0.6); border: 1px solid var(--glass-border); color: var(--text-primary);">
+          <input type="time" id="birth-time" style="flex: 1; min-width: 100px; padding: 10px; border-radius: 10px; background: rgba(9, 10, 22, 0.6); border: 1px solid var(--glass-border); color: var(--text-primary);">
         </div>
+
         <div style="display: flex; align-items: center; gap: 8px;">
           <input type="checkbox" id="birth-time-unknown" style="accent-color: var(--accent-color, #a855f7);">
           <label for="birth-time-unknown" style="font-size: 0.8rem; color: var(--text-secondary); cursor: pointer;">出生時間不明（正午12:00で計算）</label>
         </div>
+
         <input type="text" id="birth-location" placeholder="出生地（例: 東京都、大阪府）" 
-               style="width: 100%; padding: 10px; border-radius: 10px; background: rgba(9, 10, 22, 0.6); border: 1px solid var(--glass-border); color: var(--text-primary);">
+               style="width: 100%; box-sizing: border-box; padding: 10px; border-radius: 10px; background: rgba(9, 10, 22, 0.6); border: 1px solid var(--glass-border); color: var(--text-primary); display: block;">
       </div>
 
-      
+      <!-- メイン解読ボタン -->
+      <button id="decode-personal-btn" style="width: 100%; margin-top: 10px; padding: 10px; border-radius: 20px; background: rgba(255, 255, 255, 0.1); border: 1px solid #a855f7; color: white; cursor: pointer; font-weight: bold; font-size: 0.85rem;">
+        ✦ この日時の星のメッセージを解読する
+      </button>
+
       <!-- 月間抽出グループ -->
       <div id="munden-rank-group">
         <hr style="border: 0; border-top: 1px solid var(--glass-border); margin: 16px 0;">
@@ -110,7 +84,7 @@
 
       <hr style="border: 0; border-top: 1px solid var(--glass-border); margin: 16px 0;">
 
-      <!-- 天体のサイン移動（イングレス）検出グループ -->
+      <!-- 天体のサイン移動検出グループ -->
       <div id="sign-input-group">
         <label style="display: block; margin-bottom: 8px; font-weight: bold; font-size: 0.85rem; color: var(--text-secondary);">
           🌌 天体のサイン移動（星座移動）検出（どのホロスコープも同じ現象）
@@ -148,10 +122,8 @@
         </button>
       </div>
 
-      <!-- チャットログ表示領域 -->
       <div id="chat-container" style="max-height: 400px; overflow-y: auto; margin-bottom: 16px; padding-right: 4px;"></div>
 
-      <!-- 自由会話メッセージ入力欄 (IDをJSと統一: chat-input / send-btn) -->
       <div style="display: flex; gap: 8px;">
         <input type="text" id="chat-input" placeholder="セフィにメッセージを送る..." 
                style="flex: 1; padding: 12px; border-radius: 20px; background: rgba(9, 10, 22, 0.6); border: 1px solid var(--glass-border); color: var(--text-primary);">
