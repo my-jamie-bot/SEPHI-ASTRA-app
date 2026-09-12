@@ -312,4 +312,14 @@ input[type="checkbox"] {
 #chat-container::-webkit-scrollbar-thumb:hover {
   background: var(--accent-mystic-violet);
 }
+/* 縦潰れ防止のレスポンシブ調整 */
+#personal-input-group,
+#personal-input-group > div {
+  flex-wrap: wrap !important;
+}
 
+#personal-input-group button,
+#personal-input-group label {
+  white-space: nowrap; /* 文字の勝手な改行・縦書き化を防ぐ */
+  min-width: fit-content;
+}
