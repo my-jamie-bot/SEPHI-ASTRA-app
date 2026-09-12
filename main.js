@@ -1703,7 +1703,11 @@ function calculateProgressData() {
 
   // 始点となる基準日時（ネイタル/始審図）を取得
   if (selectedTarget === 'personal') {
-    const dob = document.getElementById('dob')?.value;
+    // 修正後（どちらのID名でも自動取得できるように変更）
+const dob = document.getElementById('dob')?.value 
+         || document.getElementById('birth-date')?.value 
+         || document.getElementById('natal-dob')?.value 
+         || document.getElementById('birthdate')?.value;
     const tob = document.getElementById('tob')?.value || '12:00';
     if (!dob) {
       alert('生年月日を入力してください。');
@@ -1795,7 +1799,11 @@ function searchProgressNatalAspects() {
 
   // 1. ネイタル／始審図 データの取得
   if (selectedTarget === 'personal') {
-    const dob = document.getElementById('dob')?.value;
+    // 修正後（どちらのID名でも自動取得できるように変更）
+const dob = document.getElementById('dob')?.value 
+         || document.getElementById('birth-date')?.value 
+         || document.getElementById('natal-dob')?.value 
+         || document.getElementById('birthdate')?.value;
     const tob = document.getElementById('tob')?.value || '12:00';
     if (!dob) {
       alert('生年月日を入力してください。');
