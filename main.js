@@ -500,7 +500,7 @@ function getMonthlyAspectEvents(yearMonthStr, targetType, selectedJapanChartKey,
       usedDates.add(ev.date);
       uniqueDateEvents.push(ev);
     }
-    if (uniqueDateEvents.length >= 6) break;
+    if (uniqueDateEvents.length >= 10) break;
   }
 
   return { targetName, events: uniqueDateEvents };
@@ -824,7 +824,7 @@ document.getElementById('rank-btn')?.addEventListener('click', () => {
   const result = getMonthlyAspectEvents(monthVal, selectedTarget, chartType, personalPositions);
 
   // 計算結果のHTML生成
-  let outputHTML = `<strong>【${result.targetName}】 ${monthVal} 注目・波乱スコア Top 6</strong><br><br>`;
+  let outputHTML = `<strong>【${result.targetName}】 ${monthVal} 注目・波乱スコア Top 10</strong><br><br>`;
   if (result.events.length === 0) {
     outputHTML += '該当する顕著なアスペクトヒットはありません。';
   } else {
@@ -1114,6 +1114,7 @@ function getSignTransits(startDateStr, endDateStr) {
     prevSigns[body] = Math.floor(((deg % 360) + 360) % 360 / 30);
   });
 
+
   while (currDate <= endDate) {
     const time = Astronomy.MakeTime(currDate);
 
@@ -1178,7 +1179,11 @@ document.addEventListener('DOMContentLoaded', () => {
       outputHTML += `<span style="font-size:0.85rem; color: var(--text-secondary);">対象期間: ${startVal} 〜 ${endVal}</span><br><br>`;
 
       if (events.length === 0) {
-        outputHTML += '指定された期間内に主要天体のサイン移動はありません。';
+        outputHTML += '指定された期間内に主要
+
+
+
+はありません。';
       } else {
         events.forEach(ev => {
           outputHTML += `・<strong>${ev.date}</strong>：${ev.bodyName} が 【${ev.fromSign}】➔ <strong>【${ev.toSign}】</strong> へ移動<br>`;
@@ -1212,35 +1217,24 @@ ${plainTextEvents}`;
     });
   }
 });
-// --- 分析対象（ラジオボタン）切り替えとUI制御 ---
-function initTargetSelector() {
-  document.querySelectorAll('input[name="astro-target"]').forEach(radio => {
-    radio.addEventListener('change', (e) => {
-      const mode = e.target.value; // 'global', 'japan', 'personal'
-      
-      const japanGroup = document.getElementById('japan-chart-group');
-      const personalGroup = document.getElementById('personal-input-group');
-      const mundenGroup = document.getElementById('munden-input-group');
-      const mundenRankGroup = document.getElementById('munden-rank-group');
+// ラジオボタン切り替えの処理を探してください
+document.querySelectorAll('input[name="astro-target"]').forEach(radio => {
+  radio.addEventListener('change', (e) => {
+    const target = e.target.value;
+    
+    // 個人ホロスコープ用の入力欄
+    const personalGroup = document.getElementById('personal-input-group');
+    if (personalGroup) {
+      personalGroup.style.display = (target === 'personal') ? 'flex' : 'none';
+    }
 
-      // 1. まずすべて非表示にして初期化
-      if (japanGroup) japanGroup.style.display = 'none';
-      if (personalGroup) personalGroup.style.display = 'none';
-      if (mundenGroup) mundenGroup.style.display = 'block';
-      if (mundenRankGroup) mundenRankGroup.style.display = 'block';
-
-      // 2. 選択されたモードに応じて表示切り替え
-      if (mode === 'japan') {
-        if (japanGroup) japanGroup.style.display = 'block';
-      } else if (mode === 'personal') {
-        if (personalGroup) personalGroup.style.display = 'block';
-        if (mundenGroup) mundenGroup.style.display = 'none';
-        if (mundenRankGroup) mundenRankGroup.style.display = 'none';
-      }
-    });
+    // ★重要：munden-rank-group は非表示にせず、常に 'block' にしておきます
+    const rankGroup = document.getElementById('munden-rank-group');
+    if (rankGroup) {
+      rankGroup.style.display = 'block'; // 👈 ここを 'none' にしないようにします！
+    }
   });
-}
-
+});
 
 // --- 期間指定 N × T アスペクト実行ボタンのイベント設定 ---
 document.getElementById('calc-personal-aspects-btn')?.addEventListener('click', () => {
