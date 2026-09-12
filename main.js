@@ -688,30 +688,42 @@ function calculatePersonalNatalData() {
 
   const aspectStr = aspectsFound.length > 0 ? aspectsFound.join('<br>・') : '主要アスペクトなし';
 
-  // 5. 結果画面の出力生成
+  // --- 個人ホロスコープ解析の実行と出力 ---
+function renderPersonalNatalResult() {
+  const natalData = calculatePersonalNatalData();
+  if (!natalData) return;
+
+  // 1. 各天体の出力文字列を生成
+  let planetListStr = '';
+  const bodyNamesJP = { 
+    Sun: '太陽', Moon: '月', Mercury: '水星', Venus: '金星', Mars: '火星', 
+    Jupiter: '木星', Saturn: '土星', Uranus: '天王星', Neptune: '海王星', Pluto: '冥王星' 
+  };
+
+  Object.keys(natalData.positions).forEach(key => {
+    const deg = natalData.positions[key];
+    const info = getSabianInfo(deg);
+    const name = bodyNamesJP[key] || key;
+    planetListStr += `・${name}: ${info.sign} ${info.degInSign}° [数え${info.countDegree}度] ➔ サビアン: 「${info.symbol}」<br>`;
+  });
+
+  // 2. 結果画面の出力生成
   const resultHTML = `
     <strong style="color: var(--accent-color, #a855f7);">【個人ネイタルホロスコープ解析】</strong><br>
     <span style="font-size: 0.8rem; color: var(--text-secondary);">
-      生年月日・時間: ${birthDateVal} ${birthTimeVal} (${isTimeUnknown ? '時間不明' : '時間指定'}) / 出生地: ${locationVal}
+      生年月日・時間: ${natalData.birthDateStr} ${natalData.birthTimeStr} (${natalData.isTimeUnknown ? '時間不明' : '時間指定'}) / 出生地: ${natalData.location}
     </span><br><br>
-    
+
     <strong>✦ 天体配置＆サビアンシンボル</strong><br>
     <div style="padding-left: 8px; font-size: 0.85rem; color: var(--text-primary); margin-top: 4px;">
       ${planetListStr}
     </div><br>
-    
-    <strong>✦ 個人アスペクト</strong><br>
-    <div style="padding-left: 8px; font-size: 0.9rem; color: var(--text-primary); margin-top: 4px;">
-      ・${aspectStr}
-    </div>
   `;
 
   const outputEl = document.getElementById('data-output');
   if (outputEl) {
     outputEl.innerHTML = resultHTML;
   }
-
-  return resultHTML;
 }
 
 // 解読ボタンのイベントバインド
