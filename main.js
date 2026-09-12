@@ -742,12 +742,29 @@ function renderPersonalNatalResult() {
   }
 }
 
-// 解読ボタンのイベントバインド
+// --- メイン解読（検索）ボタンの判定分岐 ---
 document.getElementById('decode-personal-btn')?.addEventListener('click', () => {
-  renderPersonalNatalResult();
+  const selectedTarget = document.querySelector('input[name="astro-target"]:checked')?.value || 'earth';
+
+  if (selectedTarget === 'personal') {
+    // 個人モードの計算実行
+    renderPersonalNatalResult();
+  } else if (selectedTarget.startsWith('japan')) {
+    // 日本モード（日本国憲法・サンフランシスコ講和条約・主権回復など）の計算実行
+    if (typeof renderJapanNatalResult === 'function') {
+      renderJapanNatalResult(selectedTarget);
+    } else if (typeof renderMundaneResult === 'function') {
+      renderMundaneResult(selectedTarget);
+    }
+  } else {
+    // 地球（トランジット）モードの計算実行
+    if (typeof renderEarthResult === 'function') {
+      renderEarthResult();
+    } else if (typeof renderMundaneResult === 'function') {
+      renderMundaneResult('earth');
+    }
+  }
 });
-
-
 // --- 月間Top6算出ロジック（選択した始審図動的対応版） ---
 function getMonthlyTop6(year, month) {
   const results = [];
@@ -1262,25 +1279,24 @@ ${plainTextEvents}`;
     });
   }
 });
-// ラジオボタン切り替えの処理を探してください
+// --- 1. ラジオボタン切り替えによる入力UI制御 ---
 document.querySelectorAll('input[name="astro-target"]').forEach(radio => {
   radio.addEventListener('change', (e) => {
-    const target = e.target.value;
+    const target = e.value || e.target.value;
     
-    // 個人ホロスコープ用の入力欄
+    // 個人ホロスコープ入力欄の表示切り替え
     const personalGroup = document.getElementById('personal-input-group');
     if (personalGroup) {
       personalGroup.style.display = (target === 'personal') ? 'flex' : 'none';
     }
 
-    // ★重要：munden-rank-group は非表示にせず、常に 'block' にしておきます
+    // 月間ランク・アスペクト抽出エリアの表示制御
     const rankGroup = document.getElementById('munden-rank-group');
     if (rankGroup) {
-      rankGroup.style.display = 'block'; // 👈 ここを 'none' にしないようにします！
+      rankGroup.style.display = 'block'; // 全モード共通で表示
     }
   });
 });
-
 // --- 期間指定 N × T アスペクト実行ボタンのイベント設定 ---
 document.getElementById('calc-personal-aspects-btn')?.addEventListener('click', () => {
   const natalVal = document.getElementById('natal-date')?.value;
