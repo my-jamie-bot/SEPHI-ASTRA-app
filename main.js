@@ -742,29 +742,25 @@ function renderPersonalNatalResult() {
   }
 }
 
-// --- メイン解読（検索）ボタンの判定分岐 ---
+// --- メイン解読（検索）ボタンの判定分岐（修復版） ---
 document.getElementById('decode-personal-btn')?.addEventListener('click', () => {
   const selectedTarget = document.querySelector('input[name="astro-target"]:checked')?.value || 'earth';
 
   if (selectedTarget === 'personal') {
     // 個人モードの計算実行
     renderPersonalNatalResult();
-  } else if (selectedTarget.startsWith('japan')) {
-    // 日本モード（日本国憲法・サンフランシスコ講和条約・主権回復など）の計算実行
-    if (typeof renderJapanNatalResult === 'function') {
-      renderJapanNatalResult(selectedTarget);
-    } else if (typeof renderMundaneResult === 'function') {
-      renderMundaneResult(selectedTarget);
-    }
   } else {
-    // 地球（トランジット）モードの計算実行
-    if (typeof renderEarthResult === 'function') {
-      renderEarthResult();
-    } else if (typeof renderMundaneResult === 'function') {
-      renderMundaneResult('earth');
+    // 地球・日本モード共通の計算実行（既存のマンデン計算関数を呼び出す）
+    if (typeof renderMundaneResult === 'function') {
+      renderMundaneResult(selectedTarget);
+    } else if (typeof calculateMundaneData === 'function') {
+      calculateMundaneData(selectedTarget);
+    } else {
+      console.warn('マンデン計算関数が見つかりません。関数名を確認してください。');
     }
   }
 });
+
 // --- 月間Top6算出ロジック（選択した始審図動的対応版） ---
 function getMonthlyTop6(year, month) {
   const results = [];
