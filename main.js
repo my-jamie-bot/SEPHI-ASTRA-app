@@ -506,26 +506,25 @@ function getMonthlyAspectEvents(yearMonthStr, targetType, selectedJapanChartKey,
   return { targetName, events: uniqueDateEvents };
 }
 
-// --- サビアンシンボル取得ロジック（エラー修復版） ---
+// --- サビアンシンボル取得ロジック（SABIAN_DICTIONARY対応版） ---
 function getSabianInfo(degree) {
-  // 黄道360度から星座とサイン内の度数・数え度数を算出
   const signNames = ['牡羊座', '牡牛座', '双子座', '蟹座', '獅子座', '乙女座', '天秤座', '蠍座', '射手座', '山羊座', '水瓶座', '魚座'];
   const signIndex = Math.floor(degree / 30);
   const sign = signNames[signIndex] || '牡羊座';
   
   const degInSign = (degree % 30).toFixed(2);
-  const countDegree = Math.floor(degree % 30) + 1; // 数え度数（切り上げ）
+  const countDegree = Math.floor(degree % 30) + 1; // 数え度数
 
-  // 辞書参照用のキーを生成（例: "牡羊座_1" または "Aries_1"）
-  // ★ここで sabianKey を正しく定義します
-  const sabianKey = `${sign}_${countDegree}`;
+  // 半角数字を全角数字に変換（例: 1 -> １）
+  const countDegreeJP = String(countDegree).replace(/[0-9]/g, (s) => String.fromCharCode(s.charCodeAt(0) + 0xfee0));
 
-  // サビアンデータ（sabianSymbols等の辞書オブジェクト）から取得
+  // 辞書のキーを作成（例: "牡羊座１度"）
+  const sabianKey = `${sign}${countDegreeJP}度`;
+
+  // SABIAN_DICTIONARY から検索
   let symbolText = 'シンボルデータ準備中';
-  if (typeof sabianSymbols !== 'undefined' && sabianSymbols[sabianKey]) {
-    symbolText = sabianSymbols[sabianKey];
-  } else if (typeof sabianData !== 'undefined' && sabianData[sabianKey]) {
-    symbolText = sabianData[sabianKey];
+  if (typeof SABIAN_DICTIONARY !== 'undefined' && SABIAN_DICTIONARY[sabianKey]) {
+    symbolText = SABIAN_DICTIONARY[sabianKey];
   }
 
   return {
