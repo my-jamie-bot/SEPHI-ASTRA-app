@@ -1785,3 +1785,135 @@ function calculateProgressData() {
 document.getElementById('calculate-progress-btn')?.addEventListener('click', () => {
   calculateProgressData();
 });
+
+// --- プログレス天体 × ネイタル天体 アスペクト検索 ---
+function searchProgressNatalAspects() {
+  const selectedTarget = document.querySelector('input[name="astro-target"]:checked')?.value || 'earth';
+  let baseDateTime = null;
+  let natalPositions = null;
+  let targetLabel = '';
+
+  // 1. ネイタル／始審図 データの取得
+  if (selectedTarget === 'personal') {
+    const dob = document.getElementById('dob')?.value;
+    const tob = document.getElementById('tob')?.value || '12:00';
+    if (!dob) {
+      alert('生年月日を入力してください。');
+      return;
+    }
+    baseDateTime = new Date(`${dob}T${tob}:00`);
+    const natalData = calculatePersonalNatalData();
+    if (!natalData) return;
+    natalPositions = natalData.positions;
+    targetLabel = '個人ネイタル';
+  } else if (selectedTarget === 'japan') {
+    const chartVal = document.getElementById('japan-chart-type')?.value || '1946-10-07';
+    const chartTimes = {
+      '1946-10-07': '1946-10-07T15:15:00',
+      '1889-02-11': '1889-02-11T10:30:00',
+      '1952-04-28': '1952-04-28T22:30:00'
+    };
+    baseDateTime = new Date(chartTimes[chartVal] || `${chartVal}T12:00:00`);
+    natalPositions = getJapanNatalPositions();
+    const selectEl = document.getElementById('japan-chart-type');
+    targetLabel = `日本始審図（${selectEl.options[selectEl.selectedIndex].text.split('（')[0]}）`;
+  } else {
+    alert('「個人ホロスコープ」または「日本」を選択してください。');
+    return;
+  }
+
+  const startYear = parseInt(document.getElementById('progress-target-year')?.value || '2026', 10);
+  const birthYear = baseDateTime.getFullYear();
+  const maxOrb = parseFloat(document.getElementById('pair-orb')?.value || '1.0'); // P×Nはタイトに取るためオーブ1度推奨
+
+  const pPlanets = [
+    { key: 'Sun', name: '太陽' },
+    { key: 'Moon', name: '月' },
+    { key: 'Mercury', name: '水星' },
+    { key: 'Venus', name: '金星' },
+    { key: 'Mars', name: '火星' }
+  ];
+  const nPlanets = ['Sun', 'Moon', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn'];
+  const bodyNamesJP = {
+    Sun: '太陽', Moon: '月', Mercury: '水星', Venus: '金星', Mars: '火星',
+    Jupiter: '木星', Saturn: '土星'
+  };
+
+  const aspectTypes = [
+    { name: '合(0°)', angle: 0 },
+    { name: '六分(60°)', angle: 60 },
+    { name: '方形(90°)', angle: 90 },
+    { name: '三分(120°)', angle: 120 },
+    { name: '衝(180°)', angle: 180 }
+  ];
+
+  const results = [];
+  const searchYears = 3; // 指定年から3年間をスキャン
+
+  // 1年ごとにステップ計算（1年 ➔ 進行1日）
+  for (let y = 0; y < searchYears; y++) {
+    const currentYear = startYear + y;
+    const yearDiff = currentYear - birthYear;
+    if (yearDiff < 0) continue;
+
+    // 進行日時（1年＝1日）
+    const progressDateTime = new Date(baseDateTime.getTime() + yearDiff * 24 * 60 * 60 * 1000);
+    const pTime = Astronomy.MakeTime(progressDateTime);
+
+    pPlanets.forEach(pp => {
+      const vec = Astronomy.GeoVector(pp.key, pTime, true);
+      const pDeg = Astronomy.Ecliptic(vec).elon;
+
+      nPlanets.forEach(np => {
+        const nDeg = natalPositions[np];
+        if (nDeg === undefined) return;
+
+        let diff = Math.abs(pDeg - nDeg) % 360;
+        if (diff > 180) diff = 360 - diff;
+
+        aspectTypes.forEach(asp => {
+          const orb = Math.abs(diff - asp.angle);
+          if (orb <= maxOrb) {
+            results.push({
+              year: currentYear,
+              pairStr: `P${pp.name} × N${bodyNamesJP[np]}`,
+              aspectName: asp.name,
+              orb: orb.toFixed(2)
+            });
+          }
+        });
+      });
+    });
+  }
+
+  // 結果描画
+  let resultHTML = `
+    <strong style="color: #06b6d4;">【P×N プログレス・アスペクト検出結果】</strong><br>
+    <span style="font-size: 0.8rem; color: var(--text-secondary);">
+      対象: ${targetLabel} / 検索開始: ${startYear}年〜（3年間） / オーブ: ±${maxOrb}° 以内
+    </span><br><br>
+  `;
+
+  if (results.length === 0) {
+    resultHTML += `該当する期間にタイトなP×Nアスペクトはありません。`;
+  } else {
+    resultHTML += `<div style="max-height: 300px; overflow-y: auto; font-size: 0.85rem; line-height: 1.6;">`;
+    let lastKey = '';
+    results.forEach(res => {
+      const key = `${res.year}-${res.pairStr}-${res.aspectName}`;
+      if (key !== lastKey) {
+        resultHTML += `・<strong>${res.year}年頃</strong> ➔ <span>${res.pairStr}</span>: <strong>${res.aspectName}</strong> (オーブ: ${res.orb}°)<br>`;
+        lastKey = key;
+      }
+    });
+    resultHTML += `</div>`;
+  }
+
+  const outputEl = document.getElementById('data-output');
+  if (outputEl) outputEl.innerHTML = resultHTML;
+}
+
+// イベントバインド
+document.getElementById('search-pn-aspects-btn')?.addEventListener('click', () => {
+  searchProgressNatalAspects();
+});
