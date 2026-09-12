@@ -558,7 +558,7 @@ function getJapanTransits(transitPositions, type = 'modern') {
   return `${natal.name}太陽へ: ` + (japanHits.length > 0 ? japanHits.join(' / ') : '直接的なハードヒットなし');
 }
 
-// --- 個人ホロスコープ計算ロジック（天体位置計算追加版） ---
+// --- 個人ホロスコープ計算ロジック（修復完全版） ---
 function calculatePersonalNatalData() {
   const natalInput = document.getElementById('natal-date') || document.getElementById('birth-date');
   const birthDateVal = natalInput ? natalInput.value : '';
@@ -566,7 +566,6 @@ function calculatePersonalNatalData() {
   const isTimeUnknown = document.getElementById('birth-time-unknown')?.checked || false;
   let birthTimeVal = document.getElementById('birth-time')?.value || '';
   
-  // 出生地入力欄を確実に取得
   const locationInput = document.getElementById('birth-location');
   const locationVal = (locationInput && locationInput.value.trim() !== '') ? locationInput.value.trim() : '未指定';
 
@@ -592,7 +591,6 @@ function calculatePersonalNatalData() {
 
   const time = Astronomy.MakeTime(birthDate);
 
-  // 天体リストと日本語表記マップ
   const bodyMap = {
     Sun: '太陽', Moon: '月', Mercury: '水星', Venus: '金星', Mars: '火星',
     Jupiter: '木星', Saturn: '土星', Uranus: '天王星', Neptune: '海王星', Pluto: '冥王星'
@@ -600,12 +598,11 @@ function calculatePersonalNatalData() {
 
   const positions = {};
 
-  // 各天体の黄経（Ecliptic Longitude）を計算して格納
   Object.keys(bodyMap).forEach(bodyKey => {
     try {
       const vector = Astronomy.GeoVector(bodyKey, time, true);
       const ecliptic = Astronomy.Ecliptic(vector);
-      positions[bodyKey] = ecliptic.elon; // 黄経角度（0〜360度）
+      positions[bodyKey] = ecliptic.elon;
     } catch (e) {
       console.warn(`${bodyKey} の計算中にエラーが発生しました:`, e);
     }
