@@ -1446,3 +1446,95 @@ function getNTAspectsInPeriod(startDateStr, endDateStr, natalDateStr) {
 
   return htmlOutput;
 }
+
+// --- 天体ペア指定アスペクト検索処理 ---
+function searchPairAspects() {
+  const p1 = document.getElementById('pair-planet-1')?.value || 'Pluto';
+  const p2 = document.getElementById('pair-planet-2')?.value || 'Sun';
+  const startMonthVal = document.getElementById('pair-search-start')?.value || '2026-01';
+  const monthsCount = parseInt(document.getElementById('pair-search-months')?.value || '12', 10);
+  const maxOrb = parseFloat(document.getElementById('pair-orb')?.value || '2');
+
+  // 個人ネイタルデータの取得
+  const natalData = calculatePersonalNatalData();
+  if (!natalData || !natalData.positions[p2]) {
+    alert('ネイタルデータが取得できないか、指定された対象天体が存在しません。');
+    return;
+  }
+
+  const targetNatalDeg = natalData.positions[p2]; // 例：N太陽の黄経
+  const bodyNamesJP = {
+    Sun: '太陽', Moon: '月', Mercury: '水星', Venus: '金星', Mars: '火星',
+    Jupiter: '木星', Saturn: '土星', Uranus: '天王星', Neptune: '海王星', Pluto: '冥王星'
+  };
+
+  const aspectTypes = [
+    { name: '合 (0°)', angle: 0 },
+    { name: '六分 (60°)', angle: 60 },
+    { name: '方形 (90°)', angle: 90 },
+    { name: '三分 (120°)', angle: 120 },
+    { name: '衝 (180°)', angle: 180 }
+  ];
+
+  const startDate = new Date(`${startMonthVal}-01T00:00:00`);
+  const hitEvents = [];
+
+  // 1日刻みでトランジット天体を計算し、オーブ圏内に入る日をスキャン
+  for (let i = 0; i < monthsCount * 30; i++) {
+    const currentDT = new Date(startDate.getTime() + i * 24 * 60 * 60 * 1000);
+    const time = Astronomy.MakeTime(currentDT);
+    
+    // トランジット天体の位置
+    const vec = Astronomy.GeoVector(p1, time, true);
+    const tDeg = Astronomy.Ecliptic(vec).elon;
+
+    // 2天体間の最短角度差（0〜180度）
+    let diff = Math.abs(tDeg - targetNatalDeg) % 360;
+    if (diff > 180) diff = 360 - diff;
+
+    // 各アスペクト判定
+    aspectTypes.forEach(asp => {
+      const orb = Math.abs(diff - asp.angle);
+      if (orb <= maxOrb) {
+        hitEvents.push({
+          dateStr: currentDT.toISOString().split('T')[0],
+          aspectName: asp.name,
+          exactOrb: orb.toFixed(2)
+        });
+      }
+    });
+  }
+
+  // 出力用テキストの整形
+  let resultHTML = `
+    <strong style="color: var(--accent-color, #a855f7);">【天体ペア指定アスペクト検索結果】</strong><br>
+    <span style="font-size: 0.8rem; color: var(--text-secondary);">
+      対象: T${bodyNamesJP[p1]} × N${bodyNamesJP[p2]} / オーブ: ±${maxOrb}° 以内 / 期間: ${startMonthVal} から ${monthsCount}ヶ月間
+    </span><br><br>
+  `;
+
+  if (hitEvents.length === 0) {
+    resultHTML += `指定した期間内に該当するアスペクト（オーブ±${maxOrb}°）は見つかりませんでした。`;
+  } else {
+    // 日付が連続している場合は簡易的にリスト表示
+    resultHTML += `<div style="max-height: 250px; overflow-y: auto; font-size: 0.85rem;">`;
+    let lastDate = '';
+    hitEvents.forEach(ev => {
+      if (ev.dateStr !== lastDate) { // 日ごとの重複防止
+        resultHTML += `・<strong>${ev.dateStr}</strong> ➔ ${ev.aspectName} (誤差: ${ev.exactOrb}°)<br>`;
+        lastDate = ev.dateStr;
+      }
+    });
+    resultHTML += `</div>`;
+  }
+
+  const outputEl = document.getElementById('data-output');
+  if (outputEl) {
+    outputEl.innerHTML = resultHTML;
+  }
+}
+
+// ボタンイベントのバインド
+document.getElementById('search-pair-aspect-btn')?.addEventListener('click', () => {
+  searchPairAspects();
+});

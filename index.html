@@ -65,6 +65,62 @@
                style="width: 100%; box-sizing: border-box; padding: 10px; border-radius: 10px; background: rgba(9, 10, 22, 0.6); border: 1px solid var(--glass-border); color: var(--text-primary); display: block;">
       </div>
 
+<!-- ✦ 天体ペア指定アスペクト検索フォーム -->
+<div style="margin-top: 16px; padding: 12px; background: rgba(0, 0, 0, 0.2); border-radius: 8px; border: 1px solid var(--glass-border);">
+  <strong style="font-size: 0.85rem; color: var(--accent-color, #a855f7);">✦ 天体ペア指定アスペクト検索 (T × N / T × T)</strong>
+  
+  <div style="display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap;">
+    <!-- 始点天体（例: トランジット天体） -->
+    <select id="pair-planet-1" style="flex: 1; min-width: 110px; padding: 8px; border-radius: 8px; background: rgba(9, 10, 22, 0.8); border: 1px solid var(--glass-border); color: var(--text-primary);">
+      <option value="Pluto">T 冥王星</option>
+      <option value="Neptune">T 海王星</option>
+      <option value="Uranus">T 天王星</option>
+      <option value="Saturn">T 土星</option>
+      <option value="Jupiter">T 木星</option>
+      <option value="Mars">T 火星</option>
+      <option value="Venus">T 金星</option>
+      <option value="Mercury">T 水星</option>
+      <option value="Sun">T 太陽</option>
+    </select>
+
+    <span style="color: var(--text-secondary); align-self: center;">×</span>
+
+    <!-- 対象天体（例: ネイタル天体） -->
+    <select id="pair-planet-2" style="flex: 1; min-width: 110px; padding: 8px; border-radius: 8px; background: rgba(9, 10, 22, 0.8); border: 1px solid var(--glass-border); color: var(--text-primary);">
+      <option value="Sun">N 太陽</option>
+      <option value="Moon">N 月</option>
+      <option value="Mercury">N 水星</option>
+      <option value="Venus">N 金星</option>
+      <option value="Mars">N 火星</option>
+      <option value="Jupiter">N 木星</option>
+      <option value="Saturn">N 土星</option>
+    </select>
+  </div>
+
+  <!-- 検索期間とオーブ設定 -->
+  <div style="display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap;">
+    <div style="flex: 1; min-width: 130px;">
+      <label style="font-size: 0.75rem; color: var(--text-secondary);">検索開始月:</label>
+      <input type="month" id="pair-search-start" value="2026-01" style="width: 100%; padding: 6px; border-radius: 6px; background: rgba(9, 10, 22, 0.6); border: 1px solid var(--glass-border); color: var(--text-primary);">
+    </div>
+    <div style="flex: 1; min-width: 130px;">
+      <label style="font-size: 0.75rem; color: var(--text-secondary);">検索期間(ヶ月):</label>
+      <select id="pair-search-months" style="width: 100%; padding: 6px; border-radius: 6px; background: rgba(9, 10, 22, 0.6); border: 1px solid var(--glass-border); color: var(--text-primary);">
+        <option value="6">6ヶ月間</option>
+        <option value="12" selected>1年間</option>
+        <option value="36">3年間（長期的影響）</option>
+      </select>
+    </div>
+    <div style="flex: 1; min-width: 80px;">
+      <label style="font-size: 0.75rem; color: var(--text-secondary);">許容オーブ:</label>
+      <input type="number" id="pair-orb" value="2" min="0.5" max="6" step="0.5" style="width: 100%; padding: 6px; border-radius: 6px; background: rgba(9, 10, 22, 0.6); border: 1px solid var(--glass-border); color: var(--text-primary);">
+    </div>
+  </div>
+
+  <button id="search-pair-aspect-btn" style="width: 100%; margin-top: 10px; padding: 10px; border-radius: 8px; background: linear-gradient(135deg, #a855f7, #6366f1); color: white; border: none; cursor: pointer; font-weight: bold; font-size: 0.85rem;">
+    🔍 指定ペアのアスペクト期間を抽出
+  </button>
+</div>
       <!-- メイン解読ボタン -->
       <button id="decode-personal-btn" style="width: 100%; margin-top: 10px; padding: 10px; border-radius: 20px; background: rgba(255, 255, 255, 0.1); border: 1px solid #a855f7; color: white; cursor: pointer; font-weight: bold; font-size: 0.85rem;">
         ✦ この日時の星のメッセージを解読する
