@@ -377,7 +377,7 @@ let chatHistory = JSON.parse(localStorage.getItem('sephi_chat_log')) || [
 
 window.addEventListener('DOMContentLoaded', () => {
   renderChatHistory();
-  initTargetSelector();
+  // initTargetSelector();  👈 ここ頭に // をつけて無効化！
 });
 
 
