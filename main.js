@@ -1538,3 +1538,132 @@ function searchPairAspects() {
 document.getElementById('search-pair-aspect-btn')?.addEventListener('click', () => {
   searchPairAspects();
 });
+
+// --- 日本始審図の天体位置取得用ヘルパー ---
+function getJapanNatalPositions() {
+  const chartVal = document.getElementById('japan-chart-type')?.value || '1946-10-07';
+  // 時間補正を含む始審図日時（デフォルトは15:15など）
+  const chartTimes = {
+    '1946-10-07': '1946-10-07T15:15:00',
+    '1889-02-11': '1889-02-11T10:30:00',
+    '1952-04-28': '1952-04-28T22:30:00'
+  };
+  const dtStr = chartTimes[chartVal] || `${chartVal}T12:00:00`;
+  const time = Astronomy.MakeTime(new Date(dtStr));
+  
+  const targetBodies = ['Sun', 'Moon', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn'];
+  const positions = {};
+  targetBodies.forEach(b => {
+    const vec = Astronomy.GeoVector(b, time, true);
+    positions[b] = Astronomy.Ecliptic(vec).elon;
+  });
+  return positions;
+}
+
+// --- T(土〜冥) × N(太〜土) 一括アスペクト抽出ロジック ---
+function searchAllHeavyAspects() {
+  const selectedTarget = document.querySelector('input[name="astro-target"]:checked')?.value || 'earth';
+  let natalPositions = null;
+  let targetLabel = '';
+
+  // 対象データの分岐取得
+  if (selectedTarget === 'personal') {
+    const natalData = calculatePersonalNatalData();
+    if (!natalData) return;
+    natalPositions = natalData.positions;
+    targetLabel = '個人ネイタル';
+  } else if (selectedTarget === 'japan') {
+    natalPositions = getJapanNatalPositions();
+    const selectEl = document.getElementById('japan-chart-type');
+    targetLabel = `日本始審図（${selectEl.options[selectEl.selectedIndex].text.split('（')[0]}）`;
+  } else {
+    alert('一括抽出を行うには「日本」または「個人ホロスコープ」を選択してください。');
+    return;
+  }
+
+  const startMonthVal = document.getElementById('pair-search-start')?.value || '2026-01';
+  const monthsCount = parseInt(document.getElementById('pair-search-months')?.value || '12', 10);
+  const maxOrb = parseFloat(document.getElementById('pair-orb')?.value || '2');
+
+  const tPlanets = ['Saturn', 'Uranus', 'Neptune', 'Pluto'];
+  const nPlanets = ['Sun', 'Moon', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn'];
+  
+  const bodyNamesJP = {
+    Sun: '太陽', Moon: '月', Mercury: '水星', Venus: '金星', Mars: '火星',
+    Jupiter: '木星', Saturn: '土星', Uranus: '天王星', Neptune: '海王星', Pluto: '冥王星'
+  };
+
+  const aspectTypes = [
+    { name: '合(0°)', angle: 0 },
+    { name: '六分(60°)', angle: 60 },
+    { name: '方形(90°)', angle: 90 },
+    { name: '三分(120°)', angle: 120 },
+    { name: '衝(180°)', angle: 180 }
+  ];
+
+  const startDate = new Date(`${startMonthVal}-01T00:00:00`);
+  const results = [];
+
+  // 1日刻みでスキャン
+  for (let i = 0; i < monthsCount * 30; i++) {
+    const currentDT = new Date(startDate.getTime() + i * 24 * 60 * 60 * 1000);
+    const time = Astronomy.MakeTime(currentDT);
+    const dateStr = currentDT.toISOString().split('T')[0];
+
+    tPlanets.forEach(tp => {
+      const vec = Astronomy.GeoVector(tp, time, true);
+      const tDeg = Astronomy.Ecliptic(vec).elon;
+
+      nPlanets.forEach(np => {
+        const nDeg = natalPositions[np];
+        if (nDeg === undefined) return;
+
+        let diff = Math.abs(tDeg - nDeg) % 360;
+        if (diff > 180) diff = 360 - diff;
+
+        aspectTypes.forEach(asp => {
+          const orb = Math.abs(diff - asp.angle);
+          if (orb <= maxOrb) {
+            results.push({
+              dateStr: dateStr,
+              pairStr: `T${bodyNamesJP[tp]} × N${bodyNamesJP[np]}`,
+              aspectName: asp.name,
+              orb: orb.toFixed(2)
+            });
+          }
+        });
+      });
+    });
+  }
+
+  // 出力生成
+  let resultHTML = `
+    <strong style="color: var(--accent-color, #a855f7);">【主要ペア一括抽出結果】</strong><br>
+    <span style="font-size: 0.8rem; color: var(--text-secondary);">
+      対象: ${targetLabel} / オーブ: ±${maxOrb}° 以内 / 期間: ${startMonthVal} から ${monthsCount}ヶ月間
+    </span><br><br>
+  `;
+
+  if (results.length === 0) {
+    resultHTML += `指定期間内に該当するアスペクトはありませんでした。`;
+  } else {
+    resultHTML += `<div style="max-height: 300px; overflow-y: auto; font-size: 0.85rem;">`;
+    let lastKey = '';
+    results.forEach(res => {
+      const key = `${res.dateStr}-${res.pairStr}-${res.aspectName}`;
+      if (key !== lastKey) {
+        resultHTML += `・<strong>${res.dateStr}</strong> ➔ <span>${res.pairStr}</span>: <strong>${res.aspectName}</strong> (誤差: ${res.orb}°)<br>`;
+        lastKey = key;
+      }
+    });
+    resultHTML += `</div>`;
+  }
+
+  const outputEl = document.getElementById('data-output');
+  if (outputEl) outputEl.innerHTML = resultHTML;
+}
+
+// 一括ボタンのイベントバインド
+document.getElementById('search-all-heavy-aspects-btn')?.addEventListener('click', () => {
+  searchAllHeavyAspects();
+});

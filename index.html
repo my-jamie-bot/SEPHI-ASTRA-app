@@ -70,7 +70,7 @@
   <strong style="font-size: 0.85rem; color: var(--accent-color, #a855f7);">✦ 天体ペア指定アスペクト検索 (T × N / T × T)</strong>
   
   <div style="display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap;">
-    <!-- 始点天体（例: トランジット天体） -->
+    <!-- 始点天体（トランジット天体） -->
     <select id="pair-planet-1" style="flex: 1; min-width: 110px; padding: 8px; border-radius: 8px; background: rgba(9, 10, 22, 0.8); border: 1px solid var(--glass-border); color: var(--text-primary);">
       <option value="Pluto">T 冥王星</option>
       <option value="Neptune">T 海王星</option>
@@ -85,7 +85,7 @@
 
     <span style="color: var(--text-secondary); align-self: center;">×</span>
 
-    <!-- 対象天体（例: ネイタル天体） -->
+    <!-- 対象天体（ネイタル/始図天体） -->
     <select id="pair-planet-2" style="flex: 1; min-width: 110px; padding: 8px; border-radius: 8px; background: rgba(9, 10, 22, 0.8); border: 1px solid var(--glass-border); color: var(--text-primary);">
       <option value="Sun">N 太陽</option>
       <option value="Moon">N 月</option>
@@ -104,7 +104,7 @@
       <input type="month" id="pair-search-start" value="2026-01" style="width: 100%; padding: 6px; border-radius: 6px; background: rgba(9, 10, 22, 0.6); border: 1px solid var(--glass-border); color: var(--text-primary);">
     </div>
     <div style="flex: 1; min-width: 130px;">
-      <label style="font-size: 0.75rem; color: var(--text-secondary);">検索期間(ヶ月):</label>
+      <label style="font-size: 0.75rem; color: var(--text-secondary);">検索期間:</label>
       <select id="pair-search-months" style="width: 100%; padding: 6px; border-radius: 6px; background: rgba(9, 10, 22, 0.6); border: 1px solid var(--glass-border); color: var(--text-primary);">
         <option value="6">6ヶ月間</option>
         <option value="12" selected>1年間</option>
@@ -117,9 +117,15 @@
     </div>
   </div>
 
-  <button id="search-pair-aspect-btn" style="width: 100%; margin-top: 10px; padding: 10px; border-radius: 8px; background: linear-gradient(135deg, #a855f7, #6366f1); color: white; border: none; cursor: pointer; font-weight: bold; font-size: 0.85rem;">
-    🔍 指定ペアのアスペクト期間を抽出
-  </button>
+  <!-- ★ボタン2つを横並びで配置 -->
+  <div style="display: flex; gap: 8px; margin-top: 10px;">
+    <button id="search-pair-aspect-btn" style="flex: 1; padding: 10px; border-radius: 8px; background: rgba(255, 255, 255, 0.1); border: 1px solid var(--glass-border); color: white; cursor: pointer; font-size: 0.8rem;">
+      🔍 選択ペアのみ抽出
+    </button>
+    <button id="search-all-heavy-aspects-btn" style="flex: 1.2; padding: 10px; border-radius: 8px; background: linear-gradient(135deg, #a855f7, #6366f1); color: white; border: none; cursor: pointer; font-weight: bold; font-size: 0.8rem;">
+      ⚡ 主要ペア一括抽出 (T土〜冥 × N太〜土)
+    </button>
+  </div>
 </div>
       <!-- メイン解読ボタン -->
       <button id="decode-personal-btn" style="width: 100%; margin-top: 10px; padding: 10px; border-radius: 20px; background: rgba(255, 255, 255, 0.1); border: 1px solid #a855f7; color: white; cursor: pointer; font-weight: bold; font-size: 0.85rem;">
