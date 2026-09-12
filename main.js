@@ -617,6 +617,14 @@ function calculatePersonalNatalData() {
     positions: positions
   };
 }
+// --- 0. 日時パラメータと time の取得 ---
+  const isTimeUnknown = document.getElementById('birth-time-unknown')?.checked || false;
+  const natalInput = document.getElementById('natal-date') || document.getElementById('birth-date');
+  const birthDateVal = natalInput ? natalInput.value : '';
+  let birthTimeVal = document.getElementById('birth-time')?.value || '12:00';
+  
+  const birthDate = new Date(`${birthDateVal}T${isTimeUnknown ? '12:00' : birthTimeVal}`);
+  const time = Astronomy.MakeTime(isNaN(birthDate) ? new Date() : birthDate);
 
   // 1. 7天体 ＋ トランスサタニアンの計算
   const calcBodies = ['Sun', 'Moon', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn', 'Uranus', 'Neptune', 'Pluto'];
