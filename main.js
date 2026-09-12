@@ -967,70 +967,7 @@ document.getElementById('copy-chat-btn')?.addEventListener('click', () => {
     .catch(err => console.error('コピーに失敗しました:', err));
 });
 
-// --- 天体のサイン移動（イングレス）検出ロジック ---
-function getSignTransits(startDateStr, endDateStr) {
-  const startDate = new Date(startDateStr);
-  const endDate = new Date(endDateStr);
-  
-  if (isNaN(startDate) || isNaN(endDate) || startDate > endDate) {
-    alert('正しい期間を指定してください。');
-    return [];
-  }
-
-  const signs = ['牡羊座', '牡牛座', '双子座', '蟹座', '獅子座', '乙女座', '天秤座', '蠍座', '射手座', '山羊座', '水瓶座', '魚座'];
-  const targetBodies = ['Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn', 'Uranus', 'Neptune', 'Pluto'];
-  const bodyNamesJP = {
-    Mercury: '水星', Venus: '金星', Mars: '火星', Jupiter: '木星',
-    Saturn: '土星', Uranus: '天王星', Neptune: '海王星', Pluto: '冥王星'
-  };
-
-  const ingressEvents = [];
-  const currDate = new Date(startDate);
-
-  // 初日の位置（サイン）を取得して保持
-  const prevSigns = {};
-  const initialTime = Astronomy.MakeTime(currDate);
-  targetBodies.forEach(body => {
-    const vec = Astronomy.GeoVector(body, initialTime, true);
-    const deg = Astronomy.Ecliptic(vec).elon;
-    prevSigns[body] = Math.floor(((deg % 360) + 360) % 360 / 30);
-  });
-
-  // 1日ずつ進めてサインの変化をチェック
-  while (currDate <= endDate) {
-    const time = Astronomy.MakeTime(currDate);
-
-    targetBodies.forEach(body => {
-      const vec = Astronomy.GeoVector(body, time, true);
-      const deg = Astronomy.Ecliptic(vec).elon;
-      const currentSignIdx = Math.floor(((deg % 360) + 360) % 360 / 30);
-
-      // 前日とサインが変わっていたら記録
-      if (prevSigns[body] !== undefined && prevSigns[body] !== currentSignIdx) {
-        const dateStr = `${currDate.getFullYear()}/${currDate.getMonth() + 1}/${currDate.getDate()}`;
-        const fromSign = signs[prevSigns[body]];
-        const toSign = signs[currentSignIdx];
-
-        ingressEvents.push({
-          date: dateStr,
-          bodyName: bodyNamesJP[body],
-          fromSign: fromSign,
-          toSign: toSign
-        });
-
-        // 最新のサインに更新
-        prevSigns[body] = currentSignIdx;
-      }
-    });
-
-    // 翌日へ進める
-    currDate.setDate(currDate.getDate() + 1);
-  }
-
-  return ingressEvents;
-}
-
-// --- サイン移動実行ボタンの処理 ---
+// --- サイン移動実行ボタンの処理（モード別対応版） ---
 document.addEventListener('DOMContentLoaded', () => {
   const signBtn = document.getElementById('sign-btn');
   
@@ -1046,11 +983,27 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
-      // 計算実行
+      // 1. 現在選択されているモードを取得
+      // （※HTMLのUIに合わせて selector の id/name を調整してください）
+      const selectedTarget = document.querySelector('input[name="astro-target"]:checked')?.value || 'japan'; 
+      
+      let modeName = '【日本の始審図】';
+      let aiContextPrompt = '日本の社会情勢、国内の空気感やトレンド';
+
+      if (selectedTarget === 'personal') {
+        modeName = '【個人ネイタル】';
+        aiContextPrompt = '個人レベルでの運気や意識の切り替え、行動パターンの変化';
+      } else if (selectedTarget === 'earth' || selectedTarget === 'global') {
+        modeName = '【地球・世界チャート】';
+        aiContextPrompt = '世界全体の潮流、地球規模のエネルギーや国際的な動き';
+      }
+
+      // 2. 計算実行
       const events = getSignTransits(startVal, endVal);
 
-      // 結果表示用のHTML作成
-      let outputHTML = `<strong>【サイン移動（イングレス）解析結果】</strong><br>期間: ${startVal} 〜 ${endVal}<br><br>`;
+      // 3. 結果表示用のHTML作成
+      let outputHTML = `<strong>${modeName} サイン移動（イングレス）解析結果</strong><br>`;
+      outputHTML += `<span style="font-size:0.85rem; color: var(--text-secondary);">対象期間: ${startVal} 〜 ${endVal}</span><br><br>`;
 
       if (events.length === 0) {
         outputHTML += '指定された期間内に主要天体のサイン移動はありません。';
@@ -1065,17 +1018,20 @@ document.addEventListener('DOMContentLoaded', () => {
         outputEl.innerHTML = outputHTML;
       }
 
-      // AI（セフィ）への依頼（関数が存在する場合のみ実行）
+      // 4. AI（セフィ）への依頼（モード別に視点を変えてリクエスト）
       if (events.length > 0 && typeof fetchSephiResponseCustom === 'function') {
-        const displayPrompt = `セフィ、${startVal}〜${endVal}の間の天体のサイン移動を調べたよ！`;
+        const displayPrompt = `セフィ、${modeName}視点で${startVal}〜${endVal}の天体サイン移動を調べたよ！`;
         const plainTextEvents = events.map(e => `・${e.date}: ${e.bodyName}（${e.fromSign} → ${e.toSign}）`).join('\n');
         
         const apiPrompt = `${displayPrompt}
 
+【解説の視点】
+今回の対象は「${modeName}」です。${aiContextPrompt}に焦点を当てて解説してください。
+
 【回答のルール】
-1. この期間のサイン移動の中で「最も大きな影響を与える星の動き」とその意味を教えて！
-2. 時代や世相、個人の意識にどんな切り替えが起きやすくなるか簡単に解説してね。
-3. 全体で250〜300文字程度で綺麗にまとめてね。
+1. この期間のサイン移動の中で、特に大きな影響を与える星の動きとその意味を解説して！
+2. このターゲット（${modeName}）にとってどんな切り替えや節目になるかをわかりやすく伝えてね。
+3. 全体で250〜300文字程度でスッキリまとめてね。
 
 【サイン移動データ】
 ${plainTextEvents}`;
@@ -1087,7 +1043,6 @@ ${plainTextEvents}`;
     console.error('#sign-btn が見つかりません。HTMLのIDを確認してください。');
   }
 });
-
 
 // --- 分析対象（ラジオボタン）切り替えとUI制御 ---
 function initTargetSelector() {
