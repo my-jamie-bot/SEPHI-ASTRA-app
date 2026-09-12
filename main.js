@@ -728,7 +728,7 @@ function renderPersonalNatalResult() {
 
 // 解読ボタンのイベントバインド
 document.getElementById('decode-personal-btn')?.addEventListener('click', () => {
-  calculatePersonalNatalData();
+  renderPersonalNatalResult();
 });
 
 
