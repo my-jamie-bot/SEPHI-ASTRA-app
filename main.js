@@ -1179,11 +1179,8 @@ document.addEventListener('DOMContentLoaded', () => {
       outputHTML += `<span style="font-size:0.85rem; color: var(--text-secondary);">対象期間: ${startVal} 〜 ${endVal}</span><br><br>`;
 
       if (events.length === 0) {
-        outputHTML += '指定された期間内に主要
-
-
-
-はありません。';
+        // 余計な改行を消して1行にします（途切れていた言葉も補いました）
+        outputHTML += '指定された期間内に主要なサイン移動はありません。';
       } else {
         events.forEach(ev => {
           outputHTML += `・<strong>${ev.date}</strong>：${ev.bodyName} が 【${ev.fromSign}】➔ <strong>【${ev.toSign}】</strong> へ移動<br>`;
