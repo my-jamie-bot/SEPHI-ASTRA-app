@@ -967,7 +967,62 @@ document.getElementById('copy-chat-btn')?.addEventListener('click', () => {
     .catch(err => console.error('コピーに失敗しました:', err));
 });
 
-// --- サイン移動実行ボタンの処理（モード別対応版） ---
+// ★1. まず関数の定義を関数の外側（グローバル）に配置する
+function getSignTransits(startDateStr, endDateStr) {
+  const startDate = new Date(startDateStr);
+  const endDate = new Date(endDateStr);
+  
+  if (isNaN(startDate) || isNaN(endDate) || startDate > endDate) {
+    alert('正しい期間を指定してください。');
+    return [];
+  }
+
+  const signs = ['牡羊座', '牡牛座', '双子座', '蟹座', '獅子座', '乙女座', '天秤座', '蠍座', '射手座', '山羊座', '水瓶座', '魚座'];
+  const targetBodies = ['Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn', 'Uranus', 'Neptune', 'Pluto'];
+  const bodyNamesJP = {
+    Mercury: '水星', Venus: '金星', Mars: '火星', Jupiter: '木星',
+    Saturn: '土星', Uranus: '天王星', Neptune: '海王星', Pluto: '冥王星'
+  };
+
+  const ingressEvents = [];
+  const currDate = new Date(startDate);
+
+  const prevSigns = {};
+  const initialTime = Astronomy.MakeTime(currDate);
+  targetBodies.forEach(body => {
+    const vec = Astronomy.GeoVector(body, initialTime, true);
+    const deg = Astronomy.Ecliptic(vec).elon;
+    prevSigns[body] = Math.floor(((deg % 360) + 360) % 360 / 30);
+  });
+
+  while (currDate <= endDate) {
+    const time = Astronomy.MakeTime(currDate);
+
+    targetBodies.forEach(body => {
+      const vec = Astronomy.GeoVector(body, time, true);
+      const deg = Astronomy.Ecliptic(vec).elon;
+      const currentSignIdx = Math.floor(((deg % 360) + 360) % 360 / 30);
+
+      if (prevSigns[body] !== undefined && prevSigns[body] !== currentSignIdx) {
+        const dateStr = `${currDate.getFullYear()}/${currDate.getMonth() + 1}/${currDate.getDate()}`;
+        ingressEvents.push({
+          date: dateStr,
+          bodyName: bodyNamesJP[body],
+          fromSign: signs[prevSigns[body]],
+          toSign: signs[currentSignIdx]
+        });
+        prevSigns[body] = currentSignIdx;
+      }
+    });
+
+    currDate.setDate(currDate.getDate() + 1);
+  }
+
+  return ingressEvents;
+}
+
+
+// ★2. その下にボタンのクリックイベント処理を配置する
 document.addEventListener('DOMContentLoaded', () => {
   const signBtn = document.getElementById('sign-btn');
   
@@ -983,8 +1038,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
-      // 1. 現在選択されているモードを取得
-      // （※HTMLのUIに合わせて selector の id/name を調整してください）
+      // モード判定
       const selectedTarget = document.querySelector('input[name="astro-target"]:checked')?.value || 'japan'; 
       
       let modeName = '【日本の始審図】';
@@ -998,10 +1052,9 @@ document.addEventListener('DOMContentLoaded', () => {
         aiContextPrompt = '世界全体の潮流、地球規模のエネルギーや国際的な動き';
       }
 
-      // 2. 計算実行
+      // ★ここで上記で定義した getSignTransits が安全に呼び出されます
       const events = getSignTransits(startVal, endVal);
 
-      // 3. 結果表示用のHTML作成
       let outputHTML = `<strong>${modeName} サイン移動（イングレス）解析結果</strong><br>`;
       outputHTML += `<span style="font-size:0.85rem; color: var(--text-secondary);">対象期間: ${startVal} 〜 ${endVal}</span><br><br>`;
 
@@ -1018,7 +1071,6 @@ document.addEventListener('DOMContentLoaded', () => {
         outputEl.innerHTML = outputHTML;
       }
 
-      // 4. AI（セフィ）への依頼（モード別に視点を変えてリクエスト）
       if (events.length > 0 && typeof fetchSephiResponseCustom === 'function') {
         const displayPrompt = `セフィ、${modeName}視点で${startVal}〜${endVal}の天体サイン移動を調べたよ！`;
         const plainTextEvents = events.map(e => `・${e.date}: ${e.bodyName}（${e.fromSign} → ${e.toSign}）`).join('\n');
@@ -1039,11 +1091,8 @@ ${plainTextEvents}`;
         await fetchSephiResponseCustom(displayPrompt, apiPrompt);
       }
     });
-  } else {
-    console.error('#sign-btn が見つかりません。HTMLのIDを確認してください。');
   }
 });
-
 // --- 分析対象（ラジオボタン）切り替えとUI制御 ---
 function initTargetSelector() {
   document.querySelectorAll('input[name="astro-target"]').forEach(radio => {
