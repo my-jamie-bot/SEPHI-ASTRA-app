@@ -97,6 +97,24 @@
     </select>
   </div>
 
+
+<!-- ✦ プログレス (P天体 & サビアン) 検索フォーム -->
+<div style="margin-top: 16px; padding: 12px; background: rgba(0, 0, 0, 0.2); border-radius: 8px; border: 1px solid var(--glass-border);">
+  <strong style="font-size: 0.85rem; color: var(--accent-color, #a855f7);">✦ プログレス (P天体 & サビアン) 指定年抽出</strong>
+  
+  <div style="display: flex; gap: 8px; margin-top: 8px; align-items: center; flex-wrap: wrap;">
+    <div style="flex: 1; min-width: 140px;">
+      <label style="font-size: 0.75rem; color: var(--text-secondary);">対象年を指定:</label>
+      <input type="number" id="progress-target-year" value="2026" min="1800" max="2100" style="width: 100%; padding: 6px; border-radius: 6px; background: rgba(9, 10, 22, 0.6); border: 1px solid var(--glass-border); color: var(--text-primary);">
+    </div>
+
+    <button id="calculate-progress-btn" style="flex: 1.5; min-width: 160px; margin-top: 16px; padding: 8px 12px; border-radius: 8px; background: linear-gradient(135deg, #a855f7, #ec4899); color: white; border: none; cursor: pointer; font-weight: bold; font-size: 0.8rem;">
+      🔮 P天体度数 & サビアンを抽出
+    </button>
+  </div>
+</div>
+
+
   <!-- 検索期間とオーブ設定 -->
   <div style="display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap;">
     <div style="flex: 1; min-width: 130px;">

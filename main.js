@@ -1667,3 +1667,121 @@ function searchAllHeavyAspects() {
 document.getElementById('search-all-heavy-aspects-btn')?.addEventListener('click', () => {
   searchAllHeavyAspects();
 });
+
+// サイン（星座）名と記号の対応
+const signNamesJP = [
+  '牡羊座', '牡牛座', '双子座', '蟹座', 
+  '獅子座', '乙女座', '天秤座', '蠍座', 
+  '射手座', '山羊座', '水瓶座', '魚座'
+];
+
+// 黄経(0~360度)から「サイン名・度分秒・サビアン度数」を返すヘルパー
+function getSignAndSabian(degree) {
+  const normDeg = (degree % 360 + 360) % 360;
+  const signIndex = Math.floor(normDeg / 30);
+  const degInSign = normDeg % 30;
+  
+  const d = Math.floor(degInSign);
+  const m = Math.floor((degInSign - d) * 60);
+  
+  // サビアン度数は切り上げ (例: 0°15' ➔ 1度)
+  const sabianDeg = d + 1;
+
+  return {
+    sign: signNamesJP[signIndex],
+    formattedDeg: `${d}° ${m}'`,
+    sabianDeg: sabianDeg,
+    fullSabianText: `${signNamesJP[signIndex]} ${sabianDeg}度`
+  };
+}
+
+// --- プログレス (P天体) 一括計算ロジック ---
+function calculateProgressData() {
+  const selectedTarget = document.querySelector('input[name="astro-target"]:checked')?.value || 'earth';
+  let baseDateTime = null;
+  let targetLabel = '';
+
+  // 始点となる基準日時（ネイタル/始審図）を取得
+  if (selectedTarget === 'personal') {
+    const dob = document.getElementById('dob')?.value;
+    const tob = document.getElementById('tob')?.value || '12:00';
+    if (!dob) {
+      alert('生年月日を入力してください。');
+      return;
+    }
+    baseDateTime = new Date(`${dob}T${tob}:00`);
+    targetLabel = '個人ネイタル';
+  } else if (selectedTarget === 'japan') {
+    const chartVal = document.getElementById('japan-chart-type')?.value || '1946-10-07';
+    const chartTimes = {
+      '1946-10-07': '1946-10-07T15:15:00',
+      '1889-02-11': '1889-02-11T10:30:00',
+      '1952-04-28': '1952-04-28T22:30:00'
+    };
+    baseDateTime = new Date(chartTimes[chartVal] || `${chartVal}T12:00:00`);
+    const selectEl = document.getElementById('japan-chart-type');
+    targetLabel = `日本始審図（${selectEl.options[selectEl.selectedIndex].text.split('（')[0]}）`;
+  } else {
+    alert('プログレスの計算を行うには「個人ホロスコープ」または「日本」を選択してください。');
+    return;
+  }
+
+  // 指定年の取得
+  const targetYear = parseInt(document.getElementById('progress-target-year')?.value || '2026', 10);
+  const birthYear = baseDateTime.getFullYear();
+  const yearDiff = targetYear - birthYear;
+
+  if (yearDiff < 0) {
+    alert('指定年は誕生（始図）年以降の年を設定してください。');
+    return;
+  }
+
+  // 1日1年法（1年 ➔ 1日進める）
+  const progressDateTime = new Date(baseDateTime.getTime() + yearDiff * 24 * 60 * 60 * 1000);
+  const pTime = Astronomy.MakeTime(progressDateTime);
+
+  // 対象天体: 太陽、月、水星、金星、火星、木星、土星
+  const targetBodies = [
+    { key: 'Sun', name: '太陽' },
+    { key: 'Moon', name: '月' },
+    { key: 'Mercury', name: '水星' },
+    { key: 'Venus', name: '金星' },
+    { key: 'Mars', name: '火星' },
+    { key: 'Jupiter', name: '木星' },
+    { key: 'Saturn', name: '土星' }
+  ];
+
+  let resultHTML = `
+    <strong style="color: var(--accent-color, #a855f7);">【プログレス(P) 天体＆サビアン位置】</strong><br>
+    <span style="font-size: 0.8rem; color: var(--text-secondary);">
+      対象: ${targetLabel} / 指定年: ${targetYear}年 (P+${yearDiff}日時点)
+    </span><br><br>
+    <div style="max-height: 320px; overflow-y: auto; font-size: 0.85rem; line-height: 1.6;">
+  `;
+
+  targetBodies.forEach(b => {
+    const vec = Astronomy.GeoVector(b.key, pTime, true);
+    const degree = Astronomy.Ecliptic(vec).elon;
+    const info = getSignAndSabian(degree);
+
+    resultHTML += `
+      <div style="margin-bottom: 8px; padding: 6px 10px; background: rgba(255,255,255,0.05); border-radius: 6px;">
+        <strong>P${b.name}</strong>: 
+        <span>${info.sign} ${info.formattedDeg}</span> 
+        <span style="color: #a855f7; font-weight: bold; margin-left: 8px;">
+          ➔ サビアン: 【${info.fullSabianText}】
+        </span>
+      </div>
+    `;
+  });
+
+  resultHTML += `</div>`;
+
+  const outputEl = document.getElementById('data-output');
+  if (outputEl) outputEl.innerHTML = resultHTML;
+}
+
+// ボタンイベントのバインド
+document.getElementById('calculate-progress-btn')?.addEventListener('click', () => {
+  calculateProgressData();
+});
