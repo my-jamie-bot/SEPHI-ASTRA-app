@@ -504,7 +504,9 @@ function getMonthlyAspectEvents(yearMonthStr, targetType, selectedJapanChartKey,
   }
 
   return { targetName, events: uniqueDateEvents };
-}// --- サビアンシンボル取得ロジック（エラー修復版） ---
+}
+
+// --- サビアンシンボル取得ロジック（エラー修復版） ---
 function getSabianInfo(degree) {
   // 黄道360度から星座とサイン内の度数・数え度数を算出
   const signNames = ['牡羊座', '牡牛座', '双子座', '蟹座', '獅子座', '乙女座', '天秤座', '蠍座', '射手座', '山羊座', '水瓶座', '魚座'];
@@ -790,21 +792,6 @@ function getMonthlyTop6(year, month) {
     return `<span class="aspect-tag">第${index + 1}位</span> <strong>${month}/${item.day}</strong> (スコア: ${item.score}点) - 注目の配置: 【${item.reason}】 (日干支: ${item.dayGanZhi})`;
   });
 }
-// --- 1. 日本の始審図データ定義 ---
-const JAPAN_CHARTS = {
-  '1946-10-07': {
-    name: '日本国憲法可決説',
-    positions: { Sun: 193.3, Moon: 326.5, Mercury: 201.2, Venus: 231.8, Mars: 212.4, Jupiter: 204.6, Saturn: 125.1, Uranus: 71.3, Neptune: 188.6, Pluto: 132.8 }
-  },
-  '1889-02-11': {
-    name: '大日本帝国憲法発布説',
-    positions: { Sun: 322.8, Moon: 88.2, Mercury: 309.5, Venus: 358.1, Mars: 354.2, Jupiter: 275.6, Saturn: 134.1, Uranus: 201.7, Neptune: 60.1, Pluto: 54.3 }
-  },
-  '1952-04-28': {
-    name: '主権回復説',
-    positions: { Sun: 38.3, Moon: 82.1, Mercury: 19.5, Venus: 12.8, Mars: 219.2, Jupiter: 21.4, Saturn: 192.8, Uranus: 101.5, Neptune: 200.1, Pluto: 139.7 }
-  }
-};
 
 // --- 2. モード別月間アスペクトヒット計算ロジック ---
 function getMonthlyAspectEvents(yearMonthStr, targetType, selectedJapanChartKey, personalPositions) {
