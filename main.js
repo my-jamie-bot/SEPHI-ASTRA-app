@@ -381,7 +381,7 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 
 
-// --- 日本の3大始審図データ（10天体精密度数） ---
+// --- 始審図データの定義 ---
 const JAPAN_CHARTS = {
   '1946-10-07': {
     name: '日本国憲法可決説',
@@ -397,7 +397,114 @@ const JAPAN_CHARTS = {
   }
 };
 
-// --- サビアンシンボル取得ロジック（エラー修復版） ---
+// --- 月間ヒット日（アスペクト検出）ロジック ---
+function getMonthlyAspectEvents(yearMonthStr, targetType, selectedJapanChartKey, personalPositions) {
+  const [year, month] = yearMonthStr.split('-').map(Number);
+  const startDate = new Date(year, month - 1, 1);
+  const endDate = new Date(year, month, 0); // 月末日
+
+  const bodyNamesJP = {
+    Sun: '太陽', Moon: '月', Mercury: '水星', Venus: '金星', Mars: '火星',
+    Jupiter: '木星', Saturn: '土星', Uranus: '天王星', Neptune: '海王星', Pluto: '冥王星'
+  };
+
+  const transitBodies = ['Sun', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn', 'Uranus', 'Neptune', 'Pluto'];
+  const targetAspects = [
+    { name: '合(0°)', angle: 0, orb: 2.0 },
+    { name: '衝(180°)', angle: 180, orb: 2.0 },
+    { name: '方形(90°)', angle: 90, orb: 2.0 },
+    { name: '三分(120°)', angle: 120, orb: 1.5 }
+  ];
+
+  // 比較対象のネイタル配置をセット
+  let basePositions = null;
+  let targetName = '地球（マンデン）';
+
+  if (targetType === 'japan') {
+    const chart = JAPAN_CHARTS[selectedJapanChartKey];
+    basePositions = chart ? chart.positions : null;
+    targetName = chart ? `日本（${chart.name}）` : '日本';
+  } else if (targetType === 'personal') {
+    basePositions = personalPositions;
+    targetName = '個人ネイタル';
+  }
+
+  const events = [];
+  const currDate = new Date(startDate);
+
+  while (currDate <= endDate) {
+    const time = Astronomy.MakeTime(currDate);
+    const dateStr = `${currDate.getFullYear()}/${currDate.getMonth() + 1}/${currDate.getDate()}`;
+
+    // A. 地球モード：トランジット同士のアスペクト（マンデン全般）
+    if (targetType === 'earth' || !basePositions) {
+      for (let i = 0; i < transitBodies.length; i++) {
+        for (let j = i + 1; j < transitBodies.length; j++) {
+          const b1 = transitBodies[i];
+          const b2 = transitBodies[j];
+          const deg1 = Astronomy.Ecliptic(Astronomy.GeoVector(b1, time, true)).elon;
+          const deg2 = Astronomy.Ecliptic(Astronomy.GeoVector(b2, time, true)).elon;
+
+          let diff = Math.abs(deg1 - deg2);
+          if (diff > 180) diff = 360 - diff;
+
+          targetAspects.forEach(asp => {
+            if (Math.abs(diff - asp.angle) <= asp.orb) {
+              events.push({
+                date: dateStr,
+                detail: `【全般】T${bodyNamesJP[b1]} - T${bodyNamesJP[b2]}（${asp.name}）`,
+                importance: (b1 === 'Saturn' || b1 === 'Pluto' || b2 === 'Saturn' || b2 === 'Pluto') ? 2 : 1
+              });
+            }
+          });
+        }
+      }
+    } 
+    // B. 日本3種 or 個人モード：トランジット天体 × 対象のネイタル天体のヒット検出
+    else {
+      transitBodies.forEach(tBody => {
+        const tDeg = Astronomy.Ecliptic(Astronomy.GeoVector(tBody, time, true)).elon;
+
+        Object.keys(basePositions).forEach(nBody => {
+          const nDeg = basePositions[nBody];
+          if (nDeg === undefined) return;
+
+          let diff = Math.abs(tDeg - nDeg);
+          if (diff > 180) diff = 360 - diff;
+
+          targetAspects.forEach(asp => {
+            if (Math.abs(diff - asp.angle) <= asp.orb) {
+              events.push({
+                date: dateStr,
+                detail: `T${bodyNamesJP[tBody]} ➔ N${bodyNamesJP[nBody] || nBody}（${asp.name}）`,
+                importance: (tBody === 'Mars' || tBody === 'Saturn' || tBody === 'Pluto') ? 2 : 1
+              });
+            }
+          });
+        });
+      });
+    }
+
+    currDate.setDate(currDate.getDate() + 1);
+  }
+
+  // 重要度順・日付順に整理してTop 6を返却
+  events.sort((a, b) => b.importance - a.importance);
+  
+  // 日付の重複をまとめる
+  const uniqueDateEvents = [];
+  const usedDates = new Set();
+  
+  for (const ev of events) {
+    if (!usedDates.has(ev.date)) {
+      usedDates.add(ev.date);
+      uniqueDateEvents.push(ev);
+    }
+    if (uniqueDateEvents.length >= 6) break;
+  }
+
+  return { targetName, events: uniqueDateEvents };
+}// --- サビアンシンボル取得ロジック（エラー修復版） ---
 function getSabianInfo(degree) {
   // 黄道360度から星座とサイン内の度数・数え度数を算出
   const signNames = ['牡羊座', '牡牛座', '双子座', '蟹座', '獅子座', '乙女座', '天秤座', '蠍座', '射手座', '山羊座', '水瓶座', '魚座'];
@@ -682,19 +789,144 @@ function getMonthlyTop6(year, month) {
   return results.slice(0, 6).map((item, index) => {
     return `<span class="aspect-tag">第${index + 1}位</span> <strong>${month}/${item.day}</strong> (スコア: ${item.score}点) - 注目の配置: 【${item.reason}】 (日干支: ${item.dayGanZhi})`;
   });
-}// --- 月間Top6ランキング抽出ボタン ---
+}
+// --- 1. 日本の始審図データ定義 ---
+const JAPAN_CHARTS = {
+  '1946-10-07': {
+    name: '日本国憲法可決説',
+    positions: { Sun: 193.3, Moon: 326.5, Mercury: 201.2, Venus: 231.8, Mars: 212.4, Jupiter: 204.6, Saturn: 125.1, Uranus: 71.3, Neptune: 188.6, Pluto: 132.8 }
+  },
+  '1889-02-11': {
+    name: '大日本帝国憲法発布説',
+    positions: { Sun: 322.8, Moon: 88.2, Mercury: 309.5, Venus: 358.1, Mars: 354.2, Jupiter: 275.6, Saturn: 134.1, Uranus: 201.7, Neptune: 60.1, Pluto: 54.3 }
+  },
+  '1952-04-28': {
+    name: '主権回復説',
+    positions: { Sun: 38.3, Moon: 82.1, Mercury: 19.5, Venus: 12.8, Mars: 219.2, Jupiter: 21.4, Saturn: 192.8, Uranus: 101.5, Neptune: 200.1, Pluto: 139.7 }
+  }
+};
+
+// --- 2. モード別月間アスペクトヒット計算ロジック ---
+function getMonthlyAspectEvents(yearMonthStr, targetType, selectedJapanChartKey, personalPositions) {
+  const [year, month] = yearMonthStr.split('-').map(Number);
+  const startDate = new Date(year, month - 1, 1);
+  const endDate = new Date(year, month, 0);
+
+  const bodyNamesJP = {
+    Sun: '太陽', Moon: '月', Mercury: '水星', Venus: '金星', Mars: '火星',
+    Jupiter: '木星', Saturn: '土星', Uranus: '天王星', Neptune: '海王星', Pluto: '冥王星'
+  };
+
+  const transitBodies = ['Sun', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn', 'Uranus', 'Neptune', 'Pluto'];
+  const targetAspects = [
+    { name: '合(0°)', angle: 0, orb: 2.0 },
+    { name: '衝(180°)', angle: 180, orb: 2.0 },
+    { name: '方形(90°)', angle: 90, orb: 2.0 },
+    { name: '三分(120°)', angle: 120, orb: 1.5 }
+  ];
+
+  let basePositions = null;
+  let targetName = '地球（マンデン）';
+
+  if (targetType === 'japan') {
+    const chart = JAPAN_CHARTS[selectedJapanChartKey];
+    basePositions = chart ? chart.positions : null;
+    targetName = chart ? `日本（${chart.name}）` : '日本';
+  } else if (targetType === 'personal') {
+    basePositions = personalPositions;
+    targetName = '個人ネイタル';
+  }
+
+  const events = [];
+  const currDate = new Date(startDate);
+
+  while (currDate <= endDate) {
+    const time = Astronomy.MakeTime(currDate);
+    const dateStr = `${currDate.getFullYear()}/${currDate.getMonth() + 1}/${currDate.getDate()}`;
+
+    // 地球モード（トランジット同士）
+    if (targetType === 'earth' || !basePositions) {
+      for (let i = 0; i < transitBodies.length; i++) {
+        for (let j = i + 1; j < transitBodies.length; j++) {
+          const b1 = transitBodies[i];
+          const b2 = transitBodies[j];
+          const deg1 = Astronomy.Ecliptic(Astronomy.GeoVector(b1, time, true)).elon;
+          const deg2 = Astronomy.Ecliptic(Astronomy.GeoVector(b2, time, true)).elon;
+
+          let diff = Math.abs(deg1 - deg2);
+          if (diff > 180) diff = 360 - diff;
+
+          targetAspects.forEach(asp => {
+            if (Math.abs(diff - asp.angle) <= asp.orb) {
+              events.push({
+                date: dateStr,
+                detail: `【全般】T${bodyNamesJP[b1]} - T${bodyNamesJP[b2]}（${asp.name}）`,
+                importance: (b1 === 'Saturn' || b1 === 'Pluto' || b2 === 'Saturn' || b2 === 'Pluto') ? 2 : 1
+              });
+            }
+          });
+        }
+      }
+    } 
+    // 日本（始審図3種） or 個人モード（トランジット × ネイタルヒット）
+    else {
+      transitBodies.forEach(tBody => {
+        const tDeg = Astronomy.Ecliptic(Astronomy.GeoVector(tBody, time, true)).elon;
+
+        Object.keys(basePositions).forEach(nBody => {
+          const nDeg = basePositions[nBody];
+          if (nDeg === undefined) return;
+
+          let diff = Math.abs(tDeg - nDeg);
+          if (diff > 180) diff = 360 - diff;
+
+          targetAspects.forEach(asp => {
+            if (Math.abs(diff - asp.angle) <= asp.orb) {
+              events.push({
+                date: dateStr,
+                detail: `T${bodyNamesJP[tBody]} ➔ N${bodyNamesJP[nBody] || nBody}（${asp.name}）`,
+                importance: (tBody === 'Mars' || tBody === 'Saturn' || tBody === 'Pluto') ? 2 : 1
+              });
+            }
+          });
+        });
+      });
+    }
+
+    currDate.setDate(currDate.getDate() + 1);
+  }
+
+  // 重要度と日付でソートしてTop6抽出
+  events.sort((a, b) => b.importance - a.importance);
+  
+  const uniqueDateEvents = [];
+  const usedDates = new Set();
+  
+  for (const ev of events) {
+    if (!usedDates.has(ev.date)) {
+      usedDates.add(ev.date);
+      uniqueDateEvents.push(ev);
+    }
+    if (uniqueDateEvents.length >= 6) break;
+  }
+
+  return { targetName, events: uniqueDateEvents };
+}
+
+// --- 3. 月間Top6ランキング抽出ボタンの処理 ---
 document.getElementById('rank-btn')?.addEventListener('click', () => {
-  const monthVal = document.getElementById('target-month').value;
-  if (!monthVal) return;
+  const monthVal = document.getElementById('target-month')?.value;
+  if (!monthVal) {
+    alert('対象年月を選択してください。');
+    return;
+  }
 
-  const [year, month] = monthVal.split('-').map(Number);
-  const top6List = getMonthlyTop6(year, month);
+  // UIからの選択情報取得
+  const selectedTarget = document.querySelector('input[name="astro-target"]:checked')?.value || 'japan';
+  const chartType = document.getElementById('japan-chart-type')?.value || '1889-02-11';
+  const personalPositions = window.userPersonalPositions || null;
 
-  // 1. 分析対象と日本の始審図タイプの取得
-  const selectedTarget = document.querySelector('input[name="astro-target"]:checked')?.value;
-  const chartType = document.getElementById('japan-chart-type')?.value;
-
-  // 2. 日本選択時の注釈ヘッダー生成
+  // 日本選択時の注釈ヘッダー生成
   let headerHTML = '';
   if (selectedTarget === 'japan' && typeof JAPAN_CHART_INFO !== 'undefined') {
     const info = JAPAN_CHART_INFO[chartType];
@@ -706,39 +938,47 @@ document.getElementById('rank-btn')?.addEventListener('click', () => {
     }
   }
 
-  // 3. 計算結果のHTML生成
-  let outputHTML = `<strong>【${year}年${month}月 注目・波乱スコア Top 6】</strong><br><br>`;
-  top6List.forEach(itemStr => {
-    outputHTML += `${itemStr}<br>`;
-  });
+  // ヒット日計算の実行
+  const result = getMonthlyAspectEvents(monthVal, selectedTarget, chartType, personalPositions);
 
-  // 4. データ出力画面に注釈＋結果を表示（セフィへの自動送信はせず手動会話へ）
-  document.getElementById('data-output').innerHTML = headerHTML + outputHTML;
+  // 計算結果のHTML生成
+  let outputHTML = `<strong>【${result.targetName}】 ${monthVal} 注目・波乱スコア Top 6</strong><br><br>`;
+  if (result.events.length === 0) {
+    outputHTML += '該当する顕著なアスペクトヒットはありません。';
+  } else {
+    result.events.forEach(ev => {
+      outputHTML += `・<strong>${ev.date}</strong>：${ev.detail}<br>`;
+    });
+  }
+
+  // 画面に表示
+  const outputEl = document.getElementById('data-output');
+  if (outputEl) {
+    outputEl.innerHTML = headerHTML + outputHTML;
+  }
 });
 
-// 通信中フラグ（※グローバルで1つに統一）
+// --- 4. 通信中フラグ ---
 let isProcessing = false;
 
-// AI通信と履歴管理（二重描画防止・送信ボタンロック解除・ログ保存対応版）
+// --- 5. AI通信と履歴管理（※元の関数をそのまま保持） ---
 async function fetchSephiResponseCustom(displayPrompt, apiPrompt) {
   if (isProcessing) return;
   isProcessing = true;
 
   const sendBtn = document.getElementById('send-btn');
-  if (sendBtn) sendBtn.disabled = true; // 送信ボタンをロック
-  // 1. ユーザーの発言を履歴追加＆画面描画
+  if (sendBtn) sendBtn.disabled = true;
+
   addMessageToChat('user', displayPrompt);
 
   const container = document.getElementById('chat-container');
 
-  // 2. セフィのローディング表示を追加
   const loadingBubble = document.createElement('div');
   loadingBubble.className = 'chat-bubble-sephi';
   loadingBubble.innerText = 'セフィが星の配置を読み解いています...';
   container.appendChild(loadingBubble);
   container.scrollTop = container.scrollHeight;
 
-  // 3. API送信用に、末尾のユーザー発言だけプロンプト指示（apiPrompt）に置き換えた配列を作成
   const payloadMessages = JSON.parse(JSON.stringify(chatHistory));
   if (payloadMessages.length > 0) {
     payloadMessages[payloadMessages.length - 1].content = apiPrompt;
@@ -756,22 +996,19 @@ async function fetchSephiResponseCustom(displayPrompt, apiPrompt) {
     const data = await response.json();
 
     if (data.reply) {
-      // 4. セフィの返答を履歴追加＆画面描画＆保存
       addMessageToChat('assistant', data.reply);
     }
   } catch (err) {
     console.error('Sephi Fetch Error:', err);
     addMessageToChat('assistant', 'ごめんなさい、ハル。星の繋がりが少し揺らいじゃったみたい。もう一度試してくれる？');
   } finally {
-    // 5. 成功・失敗にかかわらずローディング消去＆ボタンのロック解除
     if (loadingBubble && loadingBubble.parentNode) {
       loadingBubble.parentNode.removeChild(loadingBubble);
     }
     isProcessing = false;
-    if (sendBtn) sendBtn.disabled = false; // ロック解除！
+    if (sendBtn) sendBtn.disabled = false;
   }
 }
-
 // --- ログクリアボタン ---
 document.getElementById('clear-log-btn')?.addEventListener('click', () => {
   if (confirm('セフィとの会話ログを消去しますか？')) {
