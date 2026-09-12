@@ -643,10 +643,14 @@ function calculatePersonalNatalData() {
 
   positions['Node'] = trueNodeDeg;
   positions['SouthNode'] = (trueNodeDeg + 180) % 360;
-  positions['Node'] = trueNodeDeg;
-  positions['SouthNode'] = (trueNodeDeg + 180) % 360;
 
-  // 3. 天体配置・サビアン情報の組み立て
+  // 3. 日本語変換マップと天体配置・サビアン情報の組み立て
+  const bodyNamesJP = { 
+    Sun: '太陽', Moon: '月', Mercury: '水星', Venus: '金星', Mars: '火星', 
+    Jupiter: '木星', Saturn: '土星', Node: 'ドラゴンヘッド', SouthNode: 'ドラゴンテイル',
+    Uranus: '天王星', Neptune: '海王星', Pluto: '冥王星' 
+  };
+
   let planetListStr = '';
   const allTargetBodies = ['Sun', 'Moon', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn', 'Node', 'SouthNode'];
   
@@ -677,7 +681,6 @@ function calculatePersonalNatalData() {
     { name: '三分(120°)', angle: 120, orb: 5 },
     { name: '六分(60°)', angle: 60, orb: 4 }
   ];
-
   for (let i = 0; i < allTargetBodies.length; i++) {
     for (let j = i + 1; j < allTargetBodies.length; j++) {
       const b1 = allTargetBodies[i];
