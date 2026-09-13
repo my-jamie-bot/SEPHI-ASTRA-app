@@ -761,31 +761,31 @@ document.getElementById('decode-personal-btn')?.addEventListener('click', () => 
   }
 });
 
-// --- 月間Top6算出ロジック（選択した始審図動的対応版） ---
+// --- 月間Top6算出ロジック（ペア重複排除＆ピーク抽出版） ---
 function getMonthlyTop6(year, month) {
-  const results = [];
   const daysInMonth = new Date(year, month, 0).getDate();
   const selectedTarget = document.querySelector('input[name="astro-target"]:checked')?.value;
   const chartType = document.getElementById('japan-chart-type')?.value || '1946-10-07';
 
+  // 1ヶ月間の全ヒットアスペクトを蓄積する配列
+  const monthlyAspectHits = [];
+
+  const bodies = ['Sun', 'Moon', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn', 'Uranus', 'Neptune', 'Pluto'];
+  const bodyNames = { 
+    Sun: '太陽', Moon: '月', Mercury: '水星', Venus: '金星', Mars: '火星', 
+    Jupiter: '木星', Saturn: '土星', Uranus: '天王星', Neptune: '海王星', Pluto: '冥王星' 
+  };
+
   for (let d = 1; d <= daysInMonth; d++) {
     const date = new Date(year, month - 1, d, 12, 0);
     const time = Astronomy.MakeTime(date);
-    const bodies = ['Sun', 'Moon', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn', 'Uranus', 'Neptune', 'Pluto'];
-    const bodyNames = { 
-      Sun: '太陽', Moon: '月', Mercury: '水星', Venus: '金星', Mars: '火星', 
-      Jupiter: '木星', Saturn: '土星', Uranus: '天王星', Neptune: '海王星', Pluto: '冥王星' 
-    };
     
     const positions = {};
     bodies.forEach(b => {
       positions[b] = Astronomy.Ecliptic(Astronomy.GeoVector(b, time, true)).elon;
     });
 
-    let astroScore = 0;
-    const keyAspects = [];
-
-    // 1. 空の星同士（トランジット×トランジット）のアスペクト計算
+    // ① T×T（トランジット同士）のアスペクト検出
     for (let i = 0; i < bodies.length; i++) {
       for (let j = i + 1; j < bodies.length; j++) {
         const b1 = bodies[i];
@@ -793,19 +793,29 @@ function getMonthlyTop6(year, month) {
         let diff = Math.abs(positions[b1] - positions[b2]);
         if (diff > 180) diff = 360 - diff;
 
-        if (Math.abs(diff - 90) <= 4) {
-          astroScore += 15;
-          keyAspects.push(`${bodyNames[b1]}-${bodyNames[b2]} 90°`);
-        } else if (Math.abs(diff - 180) <= 4) {
-          astroScore += 20;
-          keyAspects.push(`${bodyNames[b1]}-${bodyNames[b2]} 180°`);
-        } else if (Math.abs(diff - 0) <= 3) {
-          astroScore += 10;
+        let aspectName = '';
+        let targetAngle = 0;
+        let baseScore = 0;
+
+        if (Math.abs(diff - 180) <= 4) { aspectName = '衝(180°)'; targetAngle = 180; baseScore = 80; }
+        else if (Math.abs(diff - 90) <= 4) { aspectName = '方形(90°)'; targetAngle = 90; baseScore = 70; }
+        else if (Math.abs(diff - 0) <= 3) { aspectName = '合(0°)'; targetAngle = 0; baseScore = 60; }
+        else if (Math.abs(diff - 120) <= 3) { aspectName = '三分(120°)'; targetAngle = 120; baseScore = 50; }
+
+        if (aspectName) {
+          const orb = Math.abs(diff - targetAngle);
+          monthlyAspectHits.push({
+            pairKey: `T${bodyNames[b1]}-T${bodyNames[b2]}_${aspectName}`,
+            pairStr: `T${bodyNames[b1]} ➔ T${bodyNames[b2]} (${aspectName})`,
+            day: d,
+            orb: orb,
+            score: baseScore + (4 - orb) * 5
+          });
         }
       }
     }
 
-    // 2. 日本選択時：選択された始審図（ネイタル）へのヒットで追加スコア計算
+    // ② T×N（始審図へのヒット）のアスペクト検出
     if (selectedTarget === 'japan' && typeof JAPAN_CHARTS !== 'undefined') {
       const chart = JAPAN_CHARTS[chartType];
       if (chart) {
@@ -814,47 +824,53 @@ function getMonthlyTop6(year, month) {
             let diff = Math.abs(positions[tBody] - chart.positions[nBody]);
             if (diff > 180) diff = 360 - diff;
 
-            if (Math.abs(diff - 0) <= 3) {
-              astroScore += 25; // 強烈な重なり
-              keyAspects.unshift(`T${bodyNames[tBody]}-N${bodyNames[nBody]} 0°`);
-            } else if (Math.abs(diff - 180) <= 3) {
-              astroScore += 20; // 緊張関係
-              keyAspects.unshift(`T${bodyNames[tBody]}-N${bodyNames[nBody]} 180°`);
-            } else if (Math.abs(diff - 90) <= 3) {
-              astroScore += 15; // 変革・波乱
-              keyAspects.unshift(`T${bodyNames[tBody]}-N${bodyNames[nBody]} 90°`);
+            let aspectName = '';
+            let targetAngle = 0;
+            let baseScore = 0;
+
+            if (Math.abs(diff - 0) <= 3) { aspectName = '合(0°)'; targetAngle = 0; baseScore = 100; }
+            else if (Math.abs(diff - 180) <= 3) { aspectName = '衝(180°)'; targetAngle = 180; baseScore = 90; }
+            else if (Math.abs(diff - 90) <= 3) { aspectName = '方形(90°)'; targetAngle = 90; baseScore = 85; }
+            else if (Math.abs(diff - 120) <= 3) { aspectName = '三分(120°)'; targetAngle = 120; baseScore = 70; }
+
+            if (aspectName) {
+              const orb = Math.abs(diff - targetAngle);
+              monthlyAspectHits.push({
+                pairKey: `T${bodyNames[tBody]}-N${bodyNames[nBody]}_${aspectName}`,
+                pairStr: `T${bodyNames[tBody]} ➔ N${bodyNames[nBody]} (${aspectName})`,
+                day: d,
+                orb: orb,
+                score: baseScore + (3 - orb) * 5
+              });
             }
           });
         });
       }
     }
-
-    const solar = Solar.fromYmdHms(year, month, d, 12, 0, 0);
-    const lunar = solar.getLunar();
-    const baZi = lunar.getEightChar();
-    
-    let orientalScore = 20;
-    if (baZi.getDayWuXing() === '火') orientalScore += 10;
-
-    const totalScore = astroScore + orientalScore;
-    const aspectReason = keyAspects.length > 0 ? keyAspects.slice(0, 2).join(', ') : '天体配置の重なり';
-
-    results.push({
-      day: d,
-      score: totalScore,
-      reason: aspectReason,
-      dayGanZhi: `${baZi.getDay()}`
-    });
   }
 
-  results.sort((a, b) => b.score - a.score || a.day - b.day);
+  // --- 重複排除（同じペア・アスペクトはオーブが一番タイトなピーク日の1件のみ保持） ---
+  const uniqueHitsMap = new Map();
+  monthlyAspectHits.forEach(item => {
+    if (!uniqueHitsMap.has(item.pairKey)) {
+      uniqueHitsMap.set(item.pairKey, item);
+    } else {
+      const existing = uniqueHitsMap.get(item.pairKey);
+      if (item.orb < existing.orb) {
+        uniqueHitsMap.set(item.pairKey, item);
+      }
+    }
+  });
 
-  return results.slice(0, 6).map((item, index) => {
-    return `<span class="aspect-tag">第${index + 1}位</span> <strong>${month}/${item.day}</strong> (スコア: ${item.score}点) - 注目の配置: 【${item.reason}】 (日干支: ${item.dayGanZhi})`;
+  // スコア順（影響度が高い順）にソートしてTop 6を抽出
+  const topList = Array.from(uniqueHitsMap.values())
+    .sort((a, b) => b.score - a.score || a.orb - b.orb)
+    .slice(0, 6);
+
+  return topList.map((item, index) => {
+    return `<span class="aspect-tag">第${index + 1}位</span> <strong>${month}/${item.day} (ピーク)</strong> - ${item.pairStr} <span style="font-size: 0.75rem; color: var(--text-secondary);">(オーブ: ${item.orb.toFixed(2)}°)</span>`;
   });
 }
-
-
 
 // --- 3. 月間Top6ランキング抽出ボタンの処理 ---
 document.getElementById('rank-btn')?.addEventListener('click', () => {
