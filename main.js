@@ -741,37 +741,93 @@ function renderPersonalNatalResult() {
     outputEl.innerHTML = resultHTML;
   }
 }
-
-// --- メイン解読（検索）ボタンの判定分岐（修正版） ---
 document.getElementById('decode-personal-btn')?.addEventListener('click', () => {
-  const selectedTarget = document.querySelector('input[name="astro-target"]:checked')?.value || 'earth';
+  const p1 = document.getElementById('pair-planet-1')?.value || 'Saturn';
+  const p2 = document.getElementById('pair-planet-2')?.value || 'Sun';
+  
+  // 日付の取得（未入力時は当月1日〜当月末）
+  const now = new Date();
+  const startInput = document.getElementById('scan-start-date')?.value;
+  const endInput = document.getElementById('scan-end-date')?.value;
 
-  if (selectedTarget === 'personal') {
-    // ① 個人モード選択時
-    if (typeof renderPersonalNatalResult === 'function') {
-      renderPersonalNatalResult();
-    } else if (typeof calculatePersonalData === 'function') {
-      calculatePersonalData();
+  const startDate = startInput ? new Date(startInput) : new Date(now.getFullYear(), now.getMonth(), 1);
+  const endDate = endInput ? new Date(endInput) : new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
+  const selectedTarget = document.querySelector('input[name="astro-target"]:checked')?.value || 'earth';
+  const chartType = document.getElementById('japan-chart-type')?.value || '1946-10-07';
+
+  // 日本の始審図位置を取得
+  let natalPos = null;
+  if (selectedTarget === 'japan' && typeof JAPAN_CHARTS !== 'undefined') {
+    natalPos = JAPAN_CHARTS[chartType]?.positions?.[p2];
+  }
+
+  const hits = [];
+  const bodyNamesJP = { Sun: '太陽', Moon: '月', Mercury: '水星', Venus: '金星', Mars: '火星', Jupiter: '木星', Saturn: '土星', Uranus: '天王星', Neptune: '海王星', Pluto: '冥王星' };
+
+  // 指定期間を1日ずつスキャン
+  let currentDate = new Date(startDate);
+  while (currentDate <= endDate) {
+    const time = Astronomy.MakeTime(currentDate);
+    const pos1 = Astronomy.Ecliptic(Astronomy.GeoVector(p1, time, true)).elon;
+    let pos2 = 0;
+
+    if (selectedTarget === 'japan' && natalPos !== undefined) {
+      pos2 = natalPos; // N天体
     } else {
-      alert('個人解読関数が見つかりません');
+      pos2 = Astronomy.Ecliptic(Astronomy.GeoVector(p2, time, true)).elon; // T天体
     }
-  } else if (selectedTarget === 'japan') {
-    // ② 日本モード選択時（始審図）
-    if (typeof renderJapanResult === 'function') {
-      renderJapanResult();
-    } else if (typeof calculateJapanData === 'function') {
-      calculateJapanData();
-    } else {
-      alert('日本解読関数が見つかりません');
+
+    let diff = Math.abs(pos1 - pos2);
+    if (diff > 180) diff = 360 - diff;
+
+    // 主要アスペクト判定
+    let aspect = '';
+    let targetAngle = 0;
+    if (Math.abs(diff - 0) <= 3) { aspect = '合(0°)'; targetAngle = 0; }
+    else if (Math.abs(diff - 180) <= 3) { aspect = '衝(180°)'; targetAngle = 180; }
+    else if (Math.abs(diff - 90) <= 3) { aspect = '方形(90°)'; targetAngle = 90; }
+    else if (Math.abs(diff - 120) <= 3) { aspect = '三分(120°)'; targetAngle = 120; }
+
+    if (aspect) {
+      const orb = Math.abs(diff - targetAngle);
+      const dateStr = `${currentDate.getFullYear()}/${currentDate.getMonth() + 1}/${currentDate.getDate()}`;
+      hits.push({
+        dateStr: dateStr,
+        pairStr: `T${bodyNamesJP[p1]} ➔ ${selectedTarget === 'japan' ? 'N' : 'T'}${bodyNamesJP[p2]}`,
+        aspect: aspect,
+        orb: orb
+      });
     }
-  } else {
-    // ③ 地球モード選択時（トランジット単体）
-    if (typeof renderEarthResult === 'function') {
-      renderEarthResult();
-    } else if (typeof calculateTransitData === 'function') {
-      calculateTransitData();
+
+    // 翌日へ進める
+    currentDate.setDate(currentDate.getDate() + 1);
+  }
+
+  // 連日ヒットの重複排除（最もオーブがタイトなピーク日のみ取得）
+  const uniqueHitsMap = new Map();
+  hits.forEach(item => {
+    const key = item.aspect;
+    if (!uniqueHitsMap.has(key) || item.orb < uniqueHitsMap.get(key).orb) {
+      uniqueHitsMap.set(key, item);
+    }
+  });
+
+  const uniqueHits = Array.from(uniqueHitsMap.values());
+
+  // 結果出力エリアへの表示
+  const outputEl = document.getElementById('data-output') || document.getElementById('output');
+  if (outputEl) {
+    if (uniqueHits.length === 0) {
+      outputEl.innerHTML = `<p>指定された期間内（${startDate.toLocaleDateString()} 〜 ${endDate.toLocaleDateString()}）に該当するアスペクトはありませんでした。</p>`;
     } else {
-      alert('地球解読関数が見つかりません');
+      let html = `<div style="padding:12px; background:rgba(0,0,0,0.3); border-radius:8px;">`;
+      html += `<h4>✦ 抽出結果 (指定期間スキャン)</h4>`;
+      uniqueHits.forEach(h => {
+        html += `<p>・<strong>${h.dateStr} (ピーク)</strong> : ${h.pairStr} (${h.aspect}) - オーブ: ${h.orb.toFixed(2)}°</p>`;
+      });
+      html += `</div>`;
+      outputEl.innerHTML = html;
     }
   }
 });

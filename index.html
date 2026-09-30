@@ -67,10 +67,10 @@
 
 <!-- ✦ 天体ペア指定アスペクト検索フォーム -->
 <div style="margin-top: 16px; padding: 12px; background: rgba(0, 0, 0, 0.2); border-radius: 8px; border: 1px solid var(--glass-border);">
-  <strong style="font-size: 0.85rem; color: var(--accent-color, #a855f7);">✦ 天体ペア指定アスペクト検索 (T × N / T × T)</strong>
+  <strong style="font-size: 0.85rem; color: var(--accent-color, #a855f7);">✦ 天体ペア指定 アスペクト期間抽出 (T × N / T × T)</strong>
   
+  <!-- 天体選択 -->
   <div style="display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap;">
-    <!-- 始点天体（トランジット天体） -->
     <select id="pair-planet-1" style="flex: 1; min-width: 110px; padding: 8px; border-radius: 8px; background: rgba(9, 10, 22, 0.8); border: 1px solid var(--glass-border); color: var(--text-primary);">
       <option value="Pluto">T 冥王星</option>
       <option value="Neptune">T 海王星</option>
@@ -85,7 +85,6 @@
 
     <span style="color: var(--text-secondary); align-self: center;">×</span>
 
-    <!-- 対象天体（ネイタル/始図天体） -->
     <select id="pair-planet-2" style="flex: 1; min-width: 110px; padding: 8px; border-radius: 8px; background: rgba(9, 10, 22, 0.8); border: 1px solid var(--glass-border); color: var(--text-primary);">
       <option value="Sun">N 太陽</option>
       <option value="Moon">N 月</option>
@@ -97,6 +96,18 @@
     </select>
   </div>
 
+  <!-- 期間指定フォーム -->
+  <div style="display: flex; gap: 8px; margin-top: 10px; align-items: center;">
+    <input type="date" id="scan-start-date" style="flex: 1; padding: 6px; border-radius: 6px; background: rgba(9, 10, 22, 0.8); border: 1px solid var(--glass-border); color: white;">
+    <span style="color: var(--text-secondary);">〜</span>
+    <input type="date" id="scan-end-date" style="flex: 1; padding: 6px; border-radius: 6px; background: rgba(9, 10, 22, 0.8); border: 1px solid var(--glass-border); color: white;">
+  </div>
+
+  <!-- 期間スキャン実行ボタン -->
+  <button id="decode-personal-btn" style="width: 100%; margin-top: 10px; padding: 10px; border-radius: 20px; background: rgba(255, 255, 255, 0.1); border: 1px solid #a855f7; color: white; cursor: pointer; font-weight: bold; font-size: 0.85rem;">
+    ✦ 指定期間の星のメッセージを抽出する
+  </button>
+</div>
 
       <!-- メイン解読ボタン -->
       <button id="decode-personal-btn" style="width: 100%; margin-top: 10px; padding: 10px; border-radius: 20px; background: rgba(255, 255, 255, 0.1); border: 1px solid #a855f7; color: white; cursor: pointer; font-weight: bold; font-size: 0.85rem;">
