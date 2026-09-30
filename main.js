@@ -742,21 +742,36 @@ function renderPersonalNatalResult() {
   }
 }
 
-// --- メイン解読（検索）ボタンの判定分岐（修復版） ---
+// --- メイン解読（検索）ボタンの判定分岐（修正版） ---
 document.getElementById('decode-personal-btn')?.addEventListener('click', () => {
   const selectedTarget = document.querySelector('input[name="astro-target"]:checked')?.value || 'earth';
 
   if (selectedTarget === 'personal') {
-    // 個人モードの計算実行
-    renderPersonalNatalResult();
-  } else {
-    // 地球・日本モード共通の計算実行（既存のマンデン計算関数を呼び出す）
-    if (typeof renderMundaneResult === 'function') {
-      renderMundaneResult(selectedTarget);
-    } else if (typeof calculateMundaneData === 'function') {
-      calculateMundaneData(selectedTarget);
+    // ① 個人モード選択時
+    if (typeof renderPersonalNatalResult === 'function') {
+      renderPersonalNatalResult();
+    } else if (typeof calculatePersonalData === 'function') {
+      calculatePersonalData();
     } else {
-      console.warn('マンデン計算関数が見つかりません。関数名を確認してください。');
+      alert('個人解読関数が見つかりません');
+    }
+  } else if (selectedTarget === 'japan') {
+    // ② 日本モード選択時（始審図）
+    if (typeof renderJapanResult === 'function') {
+      renderJapanResult();
+    } else if (typeof calculateJapanData === 'function') {
+      calculateJapanData();
+    } else {
+      alert('日本解読関数が見つかりません');
+    }
+  } else {
+    // ③ 地球モード選択時（トランジット単体）
+    if (typeof renderEarthResult === 'function') {
+      renderEarthResult();
+    } else if (typeof calculateTransitData === 'function') {
+      calculateTransitData();
+    } else {
+      alert('地球解読関数が見つかりません');
     }
   }
 });
