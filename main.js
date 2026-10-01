@@ -954,10 +954,16 @@ function renderFullChartResult(selectedTarget) {
 }
 
 
-// --- 3. 期間スキャン専用処理 ---
+// --- 3. 期間スキャン専用処理（デバッグ・安全対策版） ---
 function runPeriodScan(selectedTarget, startInput, endInput) {
   const outputEl = document.getElementById('data-output') || document.getElementById('output');
-  if (!outputEl) return;
+  if (!outputEl) {
+    console.error('出力先エレメント (data-output または output) が見つかりません。');
+    return;
+  }
+
+  // 処理開始のログ
+  console.log('期間スキャン開始:', { selectedTarget, startInput, endInput });
 
   const p1 = document.getElementById('pair-planet-1')?.value || 'Saturn';
   const p2 = document.getElementById('pair-planet-2')?.value || 'Sun';
@@ -976,63 +982,72 @@ function runPeriodScan(selectedTarget, startInput, endInput) {
   const hits = [];
   const bodyNamesJP = { Sun: '太陽', Moon: '月', Mercury: '水星', Venus: '金星', Mars: '火星', Jupiter: '木星', Saturn: '土星', Uranus: '天王星', Neptune: '海王星', Pluto: '冥王星' };
 
-  let currentDate = new Date(startDate);
-  while (currentDate <= endDate) {
-    const time = Astronomy.MakeTime(currentDate);
-    const pos1 = Astronomy.Ecliptic(Astronomy.GeoVector(p1, time, true)).elon;
-    let pos2 = 0;
+  try {
+    let currentDate = new Date(startDate);
+    while (currentDate <= endDate) {
+      const time = Astronomy.MakeTime(currentDate);
+      const pos1 = Astronomy.Ecliptic(Astronomy.GeoVector(p1, time, true)).elon;
+      let pos2 = 0;
 
-    if (selectedTarget === 'japan' && natalPos !== undefined) {
-      pos2 = natalPos;
-    } else {
-      pos2 = Astronomy.Ecliptic(Astronomy.GeoVector(p2, time, true)).elon;
+      if (selectedTarget === 'japan' && natalPos !== undefined) {
+        pos2 = natalPos;
+      } else {
+        pos2 = Astronomy.Ecliptic(Astronomy.GeoVector(p2, time, true)).elon;
+      }
+
+      let diff = Math.abs(pos1 - pos2);
+      if (diff > 180) diff = 360 - diff;
+
+      let aspect = '';
+      let targetAngle = 0;
+      if (Math.abs(diff - 0) <= 3) { aspect = '合(0°)'; targetAngle = 0; }
+      else if (Math.abs(diff - 180) <= 3) { aspect = '衝(180°)'; targetAngle = 180; }
+      else if (Math.abs(diff - 90) <= 3) { aspect = '方形(90°)'; targetAngle = 90; }
+      else if (Math.abs(diff - 120) <= 3) { aspect = '三分(120°)'; targetAngle = 120; }
+
+      if (aspect) {
+        const orb = Math.abs(diff - targetAngle);
+        const dateStr = `${currentDate.getFullYear()}/${currentDate.getMonth() + 1}/${currentDate.getDate()}`;
+        hits.push({
+          dateStr: dateStr,
+          pairStr: `T${bodyNamesJP[p1] || p1} ➔ ${selectedTarget === 'japan' ? 'N' : 'T'}${bodyNamesJP[p2] || p2}`,
+          aspect: aspect,
+          orb: orb
+        });
+      }
+
+      // 翌日へ進める
+      currentDate.setDate(currentDate.getDate() + 1);
     }
 
-    let diff = Math.abs(pos1 - pos2);
-    if (diff > 180) diff = 360 - diff;
+    console.log('スキャンヒット件数:', hits.length);
 
-    let aspect = '';
-    let targetAngle = 0;
-    if (Math.abs(diff - 0) <= 3) { aspect = '合(0°)'; targetAngle = 0; }
-    else if (Math.abs(diff - 180) <= 3) { aspect = '衝(180°)'; targetAngle = 180; }
-    else if (Math.abs(diff - 90) <= 3) { aspect = '方形(90°)'; targetAngle = 90; }
-    else if (Math.abs(diff - 120) <= 3) { aspect = '三分(120°)'; targetAngle = 120; }
-
-    if (aspect) {
-      const orb = Math.abs(diff - targetAngle);
-      const dateStr = `${currentDate.getFullYear()}/${currentDate.getMonth() + 1}/${currentDate.getDate()}`;
-      hits.push({
-        dateStr: dateStr,
-        pairStr: `T${bodyNamesJP[p1] || p1} ➔ ${selectedTarget === 'japan' ? 'N' : 'T'}${bodyNamesJP[p2] || p2}`,
-        aspect: aspect,
-        orb: orb
-      });
-    }
-
-    currentDate.setDate(currentDate.getDate() + 1);
-  }
-
-  // 重複排除（ピーク日のみ保持）
-  const uniqueHitsMap = new Map();
-  hits.forEach(item => {
-    const key = item.aspect;
-    if (!uniqueHitsMap.has(key) || item.orb < uniqueHitsMap.get(key).orb) {
-      uniqueHitsMap.set(key, item);
-    }
-  });
-
-  const uniqueHits = Array.from(uniqueHitsMap.values());
-
-  if (uniqueHits.length === 0) {
-    outputEl.innerHTML = `<p style="padding:12px; background:rgba(0,0,0,0.3); border-radius:8px;">指定された期間内（${startDate.toLocaleDateString()} 〜 ${endDate.toLocaleDateString()}）に該当するアスペクトはありませんでした。</p>`;
-  } else {
-    let html = `<div style="padding:12px; background:rgba(0,0,0,0.3); border-radius:8px;">`;
-    html += `<h4 style="margin-top:0; color:var(--accent-color, #a855f7);">✦ 抽出結果 (指定期間スキャン)</h4>`;
-    uniqueHits.forEach(h => {
-      html += `<p>・<strong>${h.dateStr} (ピーク)</strong> : ${h.pairStr} (${h.aspect}) - オーブ: ${h.orb.toFixed(2)}°</p>`;
+    // 重複排除（同じアスペクト種別ごとに最もタイトなオーブのピーク日のみ保持）
+    const uniqueHitsMap = new Map();
+    hits.forEach(item => {
+      const key = `${item.pairStr}_${item.aspect}`; // ペアとアスペクト名をセットでキー化
+      if (!uniqueHitsMap.has(key) || item.orb < uniqueHitsMap.get(key).orb) {
+        uniqueHitsMap.set(key, item);
+      }
     });
-    html += `</div>`;
-    outputEl.innerHTML = html;
+
+    const uniqueHits = Array.from(uniqueHitsMap.values());
+
+    if (uniqueHits.length === 0) {
+      outputEl.innerHTML = `<div style="padding:12px; background:rgba(0,0,0,0.3); border-radius:8px; color:var(--text-primary);">指定された期間内（${startDate.toLocaleDateString()} 〜 ${endDate.toLocaleDateString()}）に該当するアスペクトはありませんでした。</div>`;
+    } else {
+      let html = `<div style="padding:12px; background:rgba(0,0,0,0.3); border-radius:8px;">`;
+      html += `<h4 style="margin-top:0; color:var(--accent-color, #a855f7);">✦ 抽出結果 (指定期間スキャン)</h4>`;
+      uniqueHits.forEach(h => {
+        html += `<p style="margin: 6px 0;">・<strong>${h.dateStr} (ピーク)</strong> : ${h.pairStr} (${h.aspect}) - オーブ: ${h.orb.toFixed(2)}°</p>`;
+      });
+      html += `</div>`;
+      outputEl.innerHTML = html;
+    }
+
+  } catch (err) {
+    console.error('期間スキャン計算エラー:', err);
+    outputEl.innerHTML = `<p style="color:#ff6b6b;">スキャン処理中にエラーが発生しました: ${err.message}</p>`;
   }
 }
 // --- 3. 月間Top6ランキング抽出ボタンの処理 ---
