@@ -704,18 +704,17 @@ function calculatePersonalNatalData() {
 
   const aspectStr = aspectsFound.length > 0 ? aspectsFound.join('<br>・') : '主要アスペクトなし';
 
-  // --- 個人ホロスコープ解析の実行と出力 ---
+// --- 個人ホロスコープ解析の実行と出力 ---
 function renderPersonalNatalResult() {
   const natalData = calculatePersonalNatalData();
   if (!natalData) return;
 
-  // 1. 各天体の出力文字列を生成
-  let planetListStr = '';
   const bodyNamesJP = { 
     Sun: '太陽', Moon: '月', Mercury: '水星', Venus: '金星', Mars: '火星', 
     Jupiter: '木星', Saturn: '土星', Uranus: '天王星', Neptune: '海王星', Pluto: '冥王星' 
   };
 
+  let planetListStr = '';
   Object.keys(natalData.positions).forEach(key => {
     const deg = natalData.positions[key];
     const info = getSabianInfo(deg);
@@ -723,7 +722,6 @@ function renderPersonalNatalResult() {
     planetListStr += `・${name}: ${info.sign} ${info.degInSign}° [数え${info.countDegree}度] ➔ サビアン: 「${info.symbol}」<br>`;
   });
 
-  // 2. 結果画面の出力生成
   const resultHTML = `
     <strong style="color: var(--accent-color, #a855f7);">【個人ネイタルホロスコープ解析】</strong><br>
     <span style="font-size: 0.8rem; color: var(--text-secondary);">
@@ -736,27 +734,63 @@ function renderPersonalNatalResult() {
     </div><br>
   `;
 
-  const outputEl = document.getElementById('data-output');
+  const outputEl = document.getElementById('data-output') || document.getElementById('output');
   if (outputEl) {
     outputEl.innerHTML = resultHTML;
   }
 }
+
+
+// --- ✦ 解読・抽出メインボタン実行処理（統合版） ---
 document.getElementById('decode-personal-btn')?.addEventListener('click', () => {
-  const p1 = document.getElementById('pair-planet-1')?.value || 'Saturn';
-  const p2 = document.getElementById('pair-planet-2')?.value || 'Sun';
-  
-  // 日付の取得（未入力時は当月1日〜当月末）
-  const now = new Date();
+  const selectedTarget = document.querySelector('input[name="astro-target"]:checked')?.value || 'earth';
   const startInput = document.getElementById('scan-start-date')?.value;
   const endInput = document.getElementById('scan-end-date')?.value;
 
+  // 1. 期間指定（scan-start-date / scan-end-date）に入力がある場合は【期間抽出モード】
+  if (startInput || endInput) {
+    runPeriodScan(selectedTarget, startInput, endInput);
+    return;
+  }
+
+  // 2. 期間未入力時は【特定日時/個人解読モード】
+  if (selectedTarget === 'personal') {
+    // 個人モード実行
+    renderPersonalNatalResult();
+  } else if (selectedTarget === 'japan') {
+    // 日本モード実行
+    if (typeof renderJapanResult === 'function') {
+      renderJapanResult();
+    } else if (typeof calculateJapanData === 'function') {
+      calculateJapanData();
+    } else {
+      alert('日本解読処理の関数が見つかりません');
+    }
+  } else {
+    // 地球モード実行
+    if (typeof renderEarthResult === 'function') {
+      renderEarthResult();
+    } else if (typeof calculateTransitData === 'function') {
+      calculateTransitData();
+    } else {
+      alert('地球解読処理の関数が見つかりません');
+    }
+  }
+});
+
+
+// --- 期間スキャン専用サブルーチン ---
+function runPeriodScan(selectedTarget, startInput, endInput) {
+  const p1 = document.getElementById('pair-planet-1')?.value || 'Saturn';
+  const p2 = document.getElementById('pair-planet-2')?.value || 'Sun';
+  
+  const now = new Date();
   const startDate = startInput ? new Date(startInput) : new Date(now.getFullYear(), now.getMonth(), 1);
   const endDate = endInput ? new Date(endInput) : new Date(now.getFullYear(), now.getMonth() + 1, 0);
 
-  const selectedTarget = document.querySelector('input[name="astro-target"]:checked')?.value || 'earth';
   const chartType = document.getElementById('japan-chart-type')?.value || '1946-10-07';
 
-  // 日本の始審図位置を取得
+  // 日本モード時の始審図位置を取得
   let natalPos = null;
   if (selectedTarget === 'japan' && typeof JAPAN_CHARTS !== 'undefined') {
     natalPos = JAPAN_CHARTS[chartType]?.positions?.[p2];
@@ -765,7 +799,6 @@ document.getElementById('decode-personal-btn')?.addEventListener('click', () => 
   const hits = [];
   const bodyNamesJP = { Sun: '太陽', Moon: '月', Mercury: '水星', Venus: '金星', Mars: '火星', Jupiter: '木星', Saturn: '土星', Uranus: '天王星', Neptune: '海王星', Pluto: '冥王星' };
 
-  // 指定期間を1日ずつスキャン
   let currentDate = new Date(startDate);
   while (currentDate <= endDate) {
     const time = Astronomy.MakeTime(currentDate);
@@ -773,15 +806,14 @@ document.getElementById('decode-personal-btn')?.addEventListener('click', () => 
     let pos2 = 0;
 
     if (selectedTarget === 'japan' && natalPos !== undefined) {
-      pos2 = natalPos; // N天体
+      pos2 = natalPos;
     } else {
-      pos2 = Astronomy.Ecliptic(Astronomy.GeoVector(p2, time, true)).elon; // T天体
+      pos2 = Astronomy.Ecliptic(Astronomy.GeoVector(p2, time, true)).elon;
     }
 
     let diff = Math.abs(pos1 - pos2);
     if (diff > 180) diff = 360 - diff;
 
-    // 主要アスペクト判定
     let aspect = '';
     let targetAngle = 0;
     if (Math.abs(diff - 0) <= 3) { aspect = '合(0°)'; targetAngle = 0; }
@@ -800,11 +832,10 @@ document.getElementById('decode-personal-btn')?.addEventListener('click', () => 
       });
     }
 
-    // 翌日へ進める
     currentDate.setDate(currentDate.getDate() + 1);
   }
 
-  // 連日ヒットの重複排除（最もオーブがタイトなピーク日のみ取得）
+  // 重複排除（ピーク日のみ保持）
   const uniqueHitsMap = new Map();
   hits.forEach(item => {
     const key = item.aspect;
@@ -815,7 +846,6 @@ document.getElementById('decode-personal-btn')?.addEventListener('click', () => 
 
   const uniqueHits = Array.from(uniqueHitsMap.values());
 
-  // 結果出力エリアへの表示
   const outputEl = document.getElementById('data-output') || document.getElementById('output');
   if (outputEl) {
     if (uniqueHits.length === 0) {
@@ -830,7 +860,7 @@ document.getElementById('decode-personal-btn')?.addEventListener('click', () => 
       outputEl.innerHTML = html;
     }
   }
-});
+}
 
 // --- 月間Top6算出ロジック（ペア重複排除＆ピーク抽出版） ---
 function getMonthlyTop6(year, month) {
