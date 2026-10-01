@@ -954,6 +954,32 @@ function renderFullChartResult(selectedTarget) {
 }
 
 
+// --- 1. 単一日時の解読ボタン (decode-personal-btn) ---
+document.getElementById('decode-personal-btn')?.addEventListener('click', () => {
+  const selectedTarget = document.querySelector('input[name="astro-target"]:checked')?.value || 'earth';
+
+  if (selectedTarget === 'personal') {
+    renderPersonalAspectResult();
+  } else {
+    renderFullChartResult(selectedTarget);
+  }
+});
+
+
+// --- 2. 指定期間のスキャンボタン (scan-period-btn) ---
+document.getElementById('scan-period-btn')?.addEventListener('click', () => {
+  const selectedTarget = document.querySelector('input[name="astro-target"]:checked')?.value || 'earth';
+  const startInput = document.getElementById('scan-start-date')?.value;
+  const endInput = document.getElementById('scan-end-date')?.value;
+
+  console.log('期間スキャンボタンが押されました:', { selectedTarget, startInput, endInput });
+
+  // 期間スキャン関数を実行
+  runPeriodScan(selectedTarget, startInput, endInput);
+});
+
+
+
 // --- 3. 期間スキャン専用処理（デバッグ・安全対策版） ---
 function runPeriodScan(selectedTarget, startInput, endInput) {
   const outputEl = document.getElementById('data-output') || document.getElementById('output');
@@ -1022,6 +1048,10 @@ function runPeriodScan(selectedTarget, startInput, endInput) {
 
     console.log('スキャンヒット件数:', hits.length);
 
+
+
+
+
     // 重複排除（同じアスペクト種別ごとに最もタイトなオーブのピーク日のみ保持）
     const uniqueHitsMap = new Map();
     hits.forEach(item => {
@@ -1050,6 +1080,8 @@ function runPeriodScan(selectedTarget, startInput, endInput) {
     outputEl.innerHTML = `<p style="color:#ff6b6b;">スキャン処理中にエラーが発生しました: ${err.message}</p>`;
   }
 }
+
+
 // --- 3. 月間Top6ランキング抽出ボタンの処理 ---
 document.getElementById('rank-btn')?.addEventListener('click', () => {
   const monthVal = document.getElementById('target-month')?.value;
@@ -2119,3 +2151,4 @@ const dob = document.getElementById('dob')?.value
 document.getElementById('search-pn-aspects-btn')?.addEventListener('click', () => {
   searchProgressNatalAspects();
 });
+
