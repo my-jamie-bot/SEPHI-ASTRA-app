@@ -1765,23 +1765,6 @@ function getNTAspectsInPeriod(startDateStr, endDateStr, natalDateStr) {
   return aspectResults.join('<br>');
 }
 
-  // 日付順に整理して出力
-  let htmlOutput = `<strong style="color: var(--accent-color, #a855f7);">【N × T 注目アスペクト タイムライン】</strong><br>`;
-  htmlOutput += `<span style="font-size: 0.8rem; color: var(--text-secondary);">対象：(T) 木星〜冥王星 × (N) 太陽〜土星</span><br><br>`;
-  
-  let lastDate = '';
-
-  results.forEach(item => {
-    if (item.date !== lastDate) {
-      htmlOutput += `<div style="margin-top: 8px; font-weight: bold; color: var(--text-primary);">📅 ${item.date}</div>`;
-      lastDate = item.date;
-    }
-    htmlOutput += `<div style="padding-left: 12px; font-size: 0.9rem; color: var(--text-secondary);">・${item.detail}</div>`;
-  });
-
-  return htmlOutput;
-}
-
 // --- 天体ペア指定アスペクト検索処理 ---
 function searchPairAspects() {
   const p1 = document.getElementById('pair-planet-1')?.value || 'Pluto';
@@ -1839,6 +1822,7 @@ function searchPairAspects() {
       }
     });
   }
+}
 
   // 出力用テキストの整形
   let resultHTML = `
