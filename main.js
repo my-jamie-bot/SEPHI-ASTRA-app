@@ -1368,12 +1368,7 @@ async function fetchSephiResponse() {
   }
 }
 
-// メッセージ追加＆ローカルストレージ保存
-function addMessageToChat(role, content) {
-  chatHistory.push({ role, content });
-  localStorage.setItem('sephi_chat_log', JSON.stringify(chatHistory));
-  renderChatHistory();
-}
+
 
 // チャット履歴の再描画
 function renderChatHistory() {
