@@ -765,63 +765,6 @@ document.getElementById('decode-personal-btn')?.addEventListener('click', () => 
 });
 
 
-// --- 個人ホロスコープ解析の実行と出力 ---
-function renderPersonalNatalResult() {
-  const natalData = calculatePersonalNatalData();
-  if (!natalData) return;
-
-  const bodyNamesJP = { 
-    Sun: '太陽', Moon: '月', Mercury: '水星', Venus: '金星', Mars: '火星', 
-    Jupiter: '木星', Saturn: '土星', Uranus: '天王星', Neptune: '海王星', Pluto: '冥王星' 
-  };
-
-  let planetListStr = '';
-  Object.keys(natalData.positions).forEach(key => {
-    const deg = natalData.positions[key];
-    const info = getSabianInfo(deg);
-    const name = bodyNamesJP[key] || key;
-    planetListStr += `・${name}: ${info.sign} ${info.degInSign}° [数え${info.countDegree}度] ➔ サビアン: 「${info.symbol}」<br>`;
-  });
-
-  const resultHTML = `
-    <strong style="color: var(--accent-color, #a855f7);">【個人ネイタルホロスコープ解析】</strong><br>
-    <span style="font-size: 0.8rem; color: var(--text-secondary);">
-      生年月日・時間: ${natalData.birthDateStr} ${natalData.birthTimeStr} (${natalData.isTimeUnknown ? '時間不明' : '時間指定'}) / 出生地: ${natalData.location}
-    </span><br><br>
-
-    <strong>✦ 天体配置＆サビアンシンボル</strong><br>
-    <div style="padding-left: 8px; font-size: 0.85rem; color: var(--text-primary); margin-top: 4px;">
-      ${planetListStr}
-    </div><br>
-  `;
-
-  const outputEl = document.getElementById('data-output') || document.getElementById('output');
-  if (outputEl) {
-    outputEl.innerHTML = resultHTML;
-  }
-}
-
-// --- メイン解読・抽出処理イベントリスナー ---
-document.getElementById('decode-personal-btn')?.addEventListener('click', () => {
-  const selectedTarget = document.querySelector('input[name="astro-target"]:checked')?.value || 'earth';
-  const startInput = document.getElementById('scan-start-date')?.value;
-  const endInput = document.getElementById('scan-end-date')?.value;
-
-  // ① 期間指定（scan-start-date / scan-end-date）に入力がある場合は【期間抽出モード】
-  if (startInput || endInput) {
-    runPeriodScan(selectedTarget, startInput, endInput);
-    return;
-  }
-
-  // ② 期間指定が空欄の場合は【指定日時の N×T アスペクト解読モード】
-  if (selectedTarget === 'personal') {
-    // 個人ネイタル × トランジットのアスペクト解読
-    renderPersonalAspectResult();
-  } else {
-    // 日本始審図 または 地球（トランジット同士）のアスペクト解読
-    renderFullChartResult(selectedTarget);
-  }
-});
 
 // --- 1. 【個人モード】指定日時の N×T アスペクト判定＆表示関数 ---
 function renderPersonalAspectResult() {
