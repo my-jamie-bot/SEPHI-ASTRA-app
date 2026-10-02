@@ -534,31 +534,6 @@ function getSabianInfo(degree) {
     symbol: symbolText
   };
 }
-// --- 日本始図 × トランジットのアスペクト算出 ---
-function getJapanTransits(transitPositions, chartKey = '1946-10-07') {
-  const natal = typeof JAPAN_CHARTS !== 'undefined' ? JAPAN_CHARTS[chartKey] : null;
-  if (!natal || !natal.positions) return '日本始審図データが見つかりません';
-
-  const bodyNamesJP = { Sun: '太陽', Moon: '月', Mercury: '水星', Venus: '金星', Mars: '火星', Jupiter: '木星', Saturn: '土星', Uranus: '天王星', Neptune: '海王星', Pluto: '冥王星' };
-  const japanHits = [];
-
-  Object.keys(transitPositions).forEach(b => {
-    let diff = Math.abs(transitPositions[b] - natal.positions.Sun);
-    if (diff > 180) diff = 360 - diff;
-
-    if (Math.abs(diff - 0) <= 5) {
-      japanHits.push(`T${bodyNamesJP[b]} - 日本太陽 合(0°)【国家的転換】`);
-    } else if (Math.abs(diff - 90) <= 5) {
-      japanHits.push(`T${bodyNamesJP[b]} - 日本太陽 90°【体制へのプレッシャー】`);
-    } else if (Math.abs(diff - 180) <= 5) {
-      japanHits.push(`T${bodyNamesJP[b]} - 日本太陽 180°【国運の試練・対外変化】`);
-    } else if (Math.abs(diff - 120) <= 4) {
-      japanHits.push(`T${bodyNamesJP[b]} - 日本太陽 120°【国運の安定・発展】`);
-    }
-  });
-
-  return `${natal.name}太陽へ: ` + (japanHits.length > 0 ? japanHits.join(' / ') : '直接的なハードヒットなし');
-}
 
 // --- 個人ホロスコープ計算ロジック（修復完全版） ---
 function calculatePersonalNatalData() {
