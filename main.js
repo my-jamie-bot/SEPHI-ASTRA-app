@@ -1580,21 +1580,6 @@ document.getElementById('calc-personal-aspects-btn')?.addEventListener('click', 
 });
 
 
-// --- 4. 個人ネイタル(N) × トランジット(T) 期間アスペクト計算関数 ---
-function getNTAspectsInPeriod(startDateStr, endDateStr, natalDateStr) {
-  const startDate = new Date(startDateStr);
-  const endDate = new Date(endDateStr);
-  const natalDate = new Date(natalDateStr);
-
-  if (isNaN(startDate) || isNaN(endDate) || isNaN(natalDate) || startDate > endDate) {
-    return '<p style="color:#ff6b6b;">正しい日付（生年月日・開始日・終了日）を入力してください。</p>';
-  }
-
-  const bodies = ['Sun', 'Moon', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn', 'Uranus', 'Neptune', 'Pluto'];
-  const bodyNamesJP = {
-    Sun: '太陽', Moon: '月', Mercury: '水星', Venus: '金星',
-    Mars: '火星', Jupiter: '木星', Saturn: '土星', Uranus: '天王星', Neptune: '海王星', Pluto: '冥王星'
-  };
 
   // 1. ネイタル天体位置の算出
   const natalTime = Astronomy.MakeTime(natalDate);
