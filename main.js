@@ -766,9 +766,16 @@ document.getElementById('decode-personal-btn')?.addEventListener('click', () => 
 // --- 1. 【個人モード】指定日時の N×T アスペクト判定＆表示関数 ---
 function renderPersonalAspectResult() {
   const natalData = typeof calculatePersonalNatalData === 'function' ? calculatePersonalNatalData() : null;
-  const targetDatetimeVal = document.getElementById('target-datetime')?.value;
-  const targetDate = targetDatetimeVal ? new Date(targetDatetimeVal) : new Date();
   
+  // ★ birth-date と birth-time から日時を作成
+  const birthDateVal = document.getElementById('birth-date')?.value;
+  const birthTimeVal = document.getElementById('birth-time')?.value || '12:00';
+  const targetDate = birthDateVal ? new Date(`${birthDateVal}T${birthTimeVal}`) : new Date();
+
+  const outputEl = document.getElementById('data-output') || document.getElementById('output');
+  if (!outputEl) return;
+  
+  // ...（ここから下のコードはそのまま）
   const outputEl = document.getElementById('data-output') || document.getElementById('output');
   if (!outputEl) return;
 

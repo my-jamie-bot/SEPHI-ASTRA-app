@@ -47,23 +47,34 @@
                style="width: 100%; padding: 12px; border-radius: 10px; background: rgba(9, 10, 22, 0.6); border: 1px solid var(--glass-border); color: var(--text-primary); margin-bottom: 12px;">
       </div>
 
-      <!-- 個人ホロスコープ選択時のみ表示するグループ -->
-      <div id="personal-input-group" style="display: none; flex-direction: column; gap: 10px; margin-bottom: 12px; width: 100%;">
-        <label style="font-size: 0.85rem; color: var(--text-secondary);">生年月日・出生時間・出生地を入力:</label>
-        
-        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-          <input type="date" id="birth-date" style="flex: 1; min-width: 140px; padding: 10px; border-radius: 10px; background: rgba(9, 10, 22, 0.6); border: 1px solid var(--glass-border); color: var(--text-primary);">
-          <input type="time" id="birth-time" style="flex: 1; min-width: 100px; padding: 10px; border-radius: 10px; background: rgba(9, 10, 22, 0.6); border: 1px solid var(--glass-border); color: var(--text-primary);">
-        </div>
+<!-- 個人ホロスコープ選択時のみ表示するグループ -->
+<div id="personal-input-group" style="display: none; flex-direction: column; gap: 10px; margin-bottom: 12px; width: 100%;">
+  
+  <!-- ① 自分の生年月日・出生時間 -->
+  <label style="font-size: 0.85rem; color: var(--text-secondary);">自分の生年月日・出生時間:</label>
+  <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+    <input type="date" id="birth-date" style="flex: 1; min-width: 140px; padding: 10px; border-radius: 10px; background: rgba(9, 10, 22, 0.6); border: 1px solid var(--glass-border); color: var(--text-primary);">
+    <input type="time" id="birth-time" style="flex: 1; min-width: 100px; padding: 10px; border-radius: 10px; background: rgba(9, 10, 22, 0.6); border: 1px solid var(--glass-border); color: var(--text-primary);">
+  </div>
 
-        <div style="display: flex; align-items: center; gap: 8px;">
-          <input type="checkbox" id="birth-time-unknown" style="accent-color: var(--accent-color, #a855f7);">
-          <label for="birth-time-unknown" style="font-size: 0.8rem; color: var(--text-secondary); cursor: pointer;">出生時間不明（正午12:00で計算）</label>
-        </div>
+  <div style="display: flex; align-items: center; gap: 8px;">
+    <input type="checkbox" id="birth-time-unknown" style="accent-color: var(--accent-color, #a855f7);">
+    <label for="birth-time-unknown" style="font-size: 0.8rem; color: var(--text-secondary); cursor: pointer;">出生時間不明（正午12:00で計算）</label>
+  </div>
 
-        <input type="text" id="birth-location" placeholder="出生地（例: 東京都、大阪府）" 
-               style="width: 100%; box-sizing: border-box; padding: 10px; border-radius: 10px; background: rgba(9, 10, 22, 0.6); border: 1px solid var(--glass-border); color: var(--text-primary); display: block;">
-      </div>
+  <input type="text" id="birth-location" placeholder="出生地（例: 東京都、大阪府）" 
+         style="width: 100%; box-sizing: border-box; padding: 10px; border-radius: 10px; background: rgba(9, 10, 22, 0.6); border: 1px solid var(--glass-border); color: var(--text-primary); display: block;">
+
+  <hr style="border: 0; border-top: 1px solid rgba(255, 255, 255, 0.1); margin: 6px 0;">
+
+  <!-- ② 解読したい日時（トランジット）★ここを追加！ -->
+  <label style="font-size: 0.85rem; color: var(--text-secondary);">解読したい日時（現在や未来の日時）:</label>
+  <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+    <input type="date" id="target-date" style="flex: 1; min-width: 140px; padding: 10px; border-radius: 10px; background: rgba(9, 10, 22, 0.6); border: 1px solid var(--glass-border); color: var(--text-primary);">
+    <input type="time" id="target-time" value="12:00" style="flex: 1; min-width: 100px; padding: 10px; border-radius: 10px; background: rgba(9, 10, 22, 0.6); border: 1px solid var(--glass-border); color: var(--text-primary);">
+  </div>
+
+</div>
 
 
   <!-- メイン解読ボタン -->
