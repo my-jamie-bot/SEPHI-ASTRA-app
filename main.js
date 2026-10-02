@@ -853,9 +853,18 @@ function renderPersonalAspectResult() {
 
 // --- 2. 【地球・日本モード】指定日時のアスペクト・チャート表示関数 ---
 function renderFullChartResult(selectedTarget) {
-  const targetDatetimeVal = document.getElementById('target-datetime')?.value;
-  const targetDate = targetDatetimeVal ? new Date(targetDatetimeVal) : new Date();
+  // ★ 解読したい日時（target-date）、またはスキャン開始日（scan-start-date）から取得する
+  const targetDateVal = document.getElementById('target-date')?.value || document.getElementById('scan-start-date')?.value;
+  const targetTimeVal = document.getElementById('target-time')?.value || '12:00';
   
+  // 入力があればその日時、空欄なら現在日時（new Date()）を使用
+  const targetDate = targetDateVal ? new Date(`${targetDateVal}T${targetTimeVal}`) : new Date();
+
+  const outputEl = document.getElementById('data-output') || document.getElementById('output');
+  if (!outputEl) return;
+
+  const time = Astronomy.MakeTime(targetDate);
+  ...  
   const outputEl = document.getElementById('data-output') || document.getElementById('output');
   if (!outputEl) return;
 
