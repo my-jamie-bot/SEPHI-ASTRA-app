@@ -859,11 +859,6 @@ function renderFullChartResult(selectedTarget) {
   if (!outputEl) return;
 
   const time = Astronomy.MakeTime(targetDate);
-  ...  
-  const outputEl = document.getElementById('data-output') || document.getElementById('output');
-  if (!outputEl) return;
-
-  const time = Astronomy.MakeTime(targetDate);
   const bodies = ['Sun', 'Moon', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn', 'Uranus', 'Neptune', 'Pluto'];
   const bodyNamesJP = { Sun: '太陽', Moon: '月', Mercury: '水星', Venus: '金星', Mars: '火星', Jupiter: '木星', Saturn: '土星', Uranus: '天王星', Neptune: '海王星', Pluto: '冥王星' };
 
