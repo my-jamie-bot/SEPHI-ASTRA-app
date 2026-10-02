@@ -1682,28 +1682,7 @@ const JAPAN_CHART_INFO = {
   }
 };
 
-// --- 3. 解析計算ボタン（#calc-btn）の処理内への組み込み例 ---
-// ※計算ボタンを押した時の出力整形処理部分で以下のように呼び出します
-const selectedTarget = document.querySelector('input[name="astro-target"]:checked')?.value;
 
-let outputHeader = '';
-
-if (selectedTarget === 'japan') {
-  const chartType = document.getElementById('japan-chart-type')?.value;
-  const info = JAPAN_CHART_INFO[chartType];
-  
-  if (info) {
-    outputHeader = `<strong>${info.title}</strong><br>${info.desc}<br><hr style="border:0; border-top:1px dashed var(--glass-border); margin:10px 0;"><br>`;
-  }
-}
-
-// 最終的なデータ出力
-const outputEl = document.getElementById('data-output');
-if (outputEl) {
-  // 定義されていない場合のエラーを防ぐため、安全にフォールバックを設定
-  const resultText = (typeof calculatedDataResult !== 'undefined') ? calculatedDataResult : '';
-  outputEl.innerHTML = outputHeader + resultText; // 注釈 ＋ 星の計算結果
-}
 
 // --- 個人ネイタル天体位置の動的計算 ---
 function getNatalPositions(natalDateObj) {
