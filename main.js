@@ -1645,8 +1645,7 @@ document.getElementById('calc-personal-aspects-btn')?.addEventListener('click', 
     html += `・<strong>[${h.dateStr}]</strong> T${h.tBody} ➔ N${h.nBody}：${h.aspect} (オーブ ${h.orb.toFixed(2)}°)<br>`;
   });
 
-  return html;
-}
+ 
 
 
 // --- 5. アプリ起動時のUI状態初期化 ---
