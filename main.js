@@ -1370,20 +1370,6 @@ async function fetchSephiResponse() {
 
 
 
-// チャット履歴の再描画
-function renderChatHistory() {
-  const container = document.getElementById('chat-container');
-  container.innerHTML = '';
-
-  chatHistory.forEach(msg => {
-    const bubble = document.createElement('div');
-    bubble.className = msg.role === 'assistant' ? 'chat-bubble-sephi' : 'chat-bubble-user';
-    bubble.innerText = msg.content;
-    container.appendChild(bubble);
-  });
-
-  container.scrollTop = container.scrollHeight;
-}
 
 // 手入力送信処理（send-btn のクリックイベント用）
 async function sendUserMessage() {
