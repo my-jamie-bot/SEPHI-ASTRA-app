@@ -535,13 +535,15 @@ function getSabianInfo(degree) {
   };
 }
 // --- 日本始図 × トランジットのアスペクト算出 ---
-function getJapanTransits(transitPositions, type = 'modern') {
-  const natal = JAPAN_NATALS[type];
+function getJapanTransits(transitPositions, chartKey = '1946-10-07') {
+  const natal = typeof JAPAN_CHARTS !== 'undefined' ? JAPAN_CHARTS[chartKey] : null;
+  if (!natal || !natal.positions) return '日本始審図データが見つかりません';
+
   const bodyNamesJP = { Sun: '太陽', Moon: '月', Mercury: '水星', Venus: '金星', Mars: '火星', Jupiter: '木星', Saturn: '土星', Uranus: '天王星', Neptune: '海王星', Pluto: '冥王星' };
   const japanHits = [];
 
   Object.keys(transitPositions).forEach(b => {
-    let diff = Math.abs(transitPositions[b] - natal.Sun);
+    let diff = Math.abs(transitPositions[b] - natal.positions.Sun);
     if (diff > 180) diff = 360 - diff;
 
     if (Math.abs(diff - 0) <= 5) {
@@ -763,14 +765,72 @@ document.getElementById('decode-personal-btn')?.addEventListener('click', () => 
 });
 
 
+// --- 個人ホロスコープ解析の実行と出力 ---
+function renderPersonalNatalResult() {
+  const natalData = calculatePersonalNatalData();
+  if (!natalData) return;
+
+  const bodyNamesJP = { 
+    Sun: '太陽', Moon: '月', Mercury: '水星', Venus: '金星', Mars: '火星', 
+    Jupiter: '木星', Saturn: '土星', Uranus: '天王星', Neptune: '海王星', Pluto: '冥王星' 
+  };
+
+  let planetListStr = '';
+  Object.keys(natalData.positions).forEach(key => {
+    const deg = natalData.positions[key];
+    const info = getSabianInfo(deg);
+    const name = bodyNamesJP[key] || key;
+    planetListStr += `・${name}: ${info.sign} ${info.degInSign}° [数え${info.countDegree}度] ➔ サビアン: 「${info.symbol}」<br>`;
+  });
+
+  const resultHTML = `
+    <strong style="color: var(--accent-color, #a855f7);">【個人ネイタルホロスコープ解析】</strong><br>
+    <span style="font-size: 0.8rem; color: var(--text-secondary);">
+      生年月日・時間: ${natalData.birthDateStr} ${natalData.birthTimeStr} (${natalData.isTimeUnknown ? '時間不明' : '時間指定'}) / 出生地: ${natalData.location}
+    </span><br><br>
+
+    <strong>✦ 天体配置＆サビアンシンボル</strong><br>
+    <div style="padding-left: 8px; font-size: 0.85rem; color: var(--text-primary); margin-top: 4px;">
+      ${planetListStr}
+    </div><br>
+  `;
+
+  const outputEl = document.getElementById('data-output') || document.getElementById('output');
+  if (outputEl) {
+    outputEl.innerHTML = resultHTML;
+  }
+}
+
+// --- メイン解読・抽出処理イベントリスナー ---
+document.getElementById('decode-personal-btn')?.addEventListener('click', () => {
+  const selectedTarget = document.querySelector('input[name="astro-target"]:checked')?.value || 'earth';
+  const startInput = document.getElementById('scan-start-date')?.value;
+  const endInput = document.getElementById('scan-end-date')?.value;
+
+  // ① 期間指定（scan-start-date / scan-end-date）に入力がある場合は【期間抽出モード】
+  if (startInput || endInput) {
+    runPeriodScan(selectedTarget, startInput, endInput);
+    return;
+  }
+
+  // ② 期間指定が空欄の場合は【指定日時の N×T アスペクト解読モード】
+  if (selectedTarget === 'personal') {
+    // 個人ネイタル × トランジットのアスペクト解読
+    renderPersonalAspectResult();
+  } else {
+    // 日本始審図 または 地球（トランジット同士）のアスペクト解読
+    renderFullChartResult(selectedTarget);
+  }
+});
+
 // --- 1. 【個人モード】指定日時の N×T アスペクト判定＆表示関数 ---
 function renderPersonalAspectResult() {
   const natalData = typeof calculatePersonalNatalData === 'function' ? calculatePersonalNatalData() : null;
   
- // 解読したい日時（target-date）を優先取得。入力がなければ誕生日（birth-date）を使用
-const targetDateVal = document.getElementById('target-date')?.value || document.getElementById('birth-date')?.value;
-const targetTimeVal = document.getElementById('target-time')?.value || document.getElementById('birth-time')?.value || '12:00';
-const targetDate = targetDateVal ? new Date(`${targetDateVal}T${targetTimeVal}`) : new Date();
+  // 解読したい日時（target-date）を取得。空欄なら今日の日付を使用
+  const targetDateVal = document.getElementById('target-date')?.value || document.getElementById('scan-start-date')?.value;
+  const targetTimeVal = document.getElementById('target-time')?.value || '12:00';
+  const targetDate = targetDateVal ? new Date(`${targetDateVal}T${targetTimeVal}`) : new Date();
 
   const outputEl = document.getElementById('data-output') || document.getElementById('output');
   if (!outputEl) return;
@@ -783,6 +843,7 @@ const targetDate = targetDateVal ? new Date(`${targetDateVal}T${targetTimeVal}`)
   const time = Astronomy.MakeTime(targetDate);
   const bodies = ['Sun', 'Moon', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn', 'Uranus', 'Neptune', 'Pluto'];
   const bodyNamesJP = { Sun: '太陽', Moon: '月', Mercury: '水星', Venus: '金星', Mars: '火星', Jupiter: '木星', Saturn: '土星', Uranus: '天王星', Neptune: '海王星', Pluto: '冥王星' };
+  
   // 指定日時のトランジット天体位置を計算
   const transitPositions = {};
   bodies.forEach(b => {
@@ -986,7 +1047,7 @@ document.getElementById('scan-period-btn')?.addEventListener('click', () => {
 
 
 
-// --- 3. 期間スキャン専用処理（デバッグ・安全対策版） ---
+// --- 3. 期間スキャン専用処理（完成版） ---
 function runPeriodScan(selectedTarget, startInput, endInput) {
   const outputEl = document.getElementById('data-output') || document.getElementById('output');
   if (!outputEl) {
@@ -994,7 +1055,6 @@ function runPeriodScan(selectedTarget, startInput, endInput) {
     return;
   }
 
-  // 処理開始のログ
   console.log('期間スキャン開始:', { selectedTarget, startInput, endInput });
 
   const p1 = document.getElementById('pair-planet-1')?.value || 'Saturn';
@@ -1006,9 +1066,13 @@ function runPeriodScan(selectedTarget, startInput, endInput) {
 
   const chartType = document.getElementById('japan-chart-type')?.value || '1946-10-07';
 
+  // ★ ネイタル天体位置の取得（日本・個人）
   let natalPos = null;
   if (selectedTarget === 'japan' && typeof JAPAN_CHARTS !== 'undefined') {
     natalPos = JAPAN_CHARTS[chartType]?.positions?.[p2];
+  } else if (selectedTarget === 'personal') {
+    const personalData = typeof calculatePersonalNatalData === 'function' ? calculatePersonalNatalData() : null;
+    natalPos = personalData?.positions?.[p2];
   }
 
   const hits = [];
@@ -1021,7 +1085,7 @@ function runPeriodScan(selectedTarget, startInput, endInput) {
       const pos1 = Astronomy.Ecliptic(Astronomy.GeoVector(p1, time, true)).elon;
       let pos2 = 0;
 
-      if (selectedTarget === 'japan' && natalPos !== undefined) {
+      if ((selectedTarget === 'japan' || selectedTarget === 'personal') && natalPos !== undefined && natalPos !== null) {
         pos2 = natalPos;
       } else {
         pos2 = Astronomy.Ecliptic(Astronomy.GeoVector(p2, time, true)).elon;
@@ -1040,50 +1104,57 @@ function runPeriodScan(selectedTarget, startInput, endInput) {
       if (aspect) {
         const orb = Math.abs(diff - targetAngle);
         const dateStr = `${currentDate.getFullYear()}/${currentDate.getMonth() + 1}/${currentDate.getDate()}`;
+        
+        // ターゲット名表記の調整
+        const targetPrefix = (selectedTarget === 'japan' || selectedTarget === 'personal') ? 'N' : 'T';
+
         hits.push({
           dateStr: dateStr,
-          pairStr: `T${bodyNamesJP[p1] || p1} ➔ ${selectedTarget === 'japan' ? 'N' : 'T'}${bodyNamesJP[p2] || p2}`,
+          pairStr: `T${bodyNamesJP[p1] || p1} ➔ ${targetPrefix}${bodyNamesJP[p2] || p2}`,
           aspect: aspect,
           orb: orb
         });
       }
 
-      // 翌日へ進める
       currentDate.setDate(currentDate.getDate() + 1);
     }
 
     console.log('スキャンヒット件数:', hits.length);
 
-
-
-
-
-    // 重複排除（同じアスペクト種別ごとに最もタイトなオーブのピーク日のみ保持）
-    const uniqueHitsMap = new Map();
-    hits.forEach(item => {
-      const key = `${item.pairStr}_${item.aspect}`; // ペアとアスペクト名をセットでキー化
-      if (!uniqueHitsMap.has(key) || item.orb < uniqueHitsMap.get(key).orb) {
-        uniqueHitsMap.set(key, item);
-      }
-    });
-
-    const uniqueHits = Array.from(uniqueHitsMap.values());
-
-    if (uniqueHits.length === 0) {
-      outputEl.innerHTML = `<div style="padding:12px; background:rgba(0,0,0,0.3); border-radius:8px; color:var(--text-primary);">指定された期間内（${startDate.toLocaleDateString()} 〜 ${endDate.toLocaleDateString()}）に該当するアスペクトはありませんでした。</div>`;
+    // ★ 画面表示用のHTML組み立て処理
+    let hitsListStr = '';
+    if (hits.length === 0) {
+      hitsListStr = '・指定期間内に該当するアスペクトは検出されませんでした。<br>';
     } else {
-      let html = `<div style="padding:12px; background:rgba(0,0,0,0.3); border-radius:8px;">`;
-      html += `<h4 style="margin-top:0; color:var(--accent-color, #a855f7);">✦ 抽出結果 (指定期間スキャン)</h4>`;
-      uniqueHits.forEach(h => {
-        html += `<p style="margin: 6px 0;">・<strong>${h.dateStr} (ピーク)</strong> : ${h.pairStr} (${h.aspect}) - オーブ: ${h.orb.toFixed(2)}°</p>`;
+      // オーブ（誤差）が小さい順にソートして表示
+      hits.sort((a, b) => a.orb - b.orb);
+      hits.forEach(h => {
+        hitsListStr += `・<strong>[${h.dateStr}] ${h.pairStr}</strong> : ${h.aspect} (オーブ ${h.orb.toFixed(2)}°)<br>`;
       });
-      html += `</div>`;
-      outputEl.innerHTML = html;
     }
 
+    const startStr = `${startDate.getFullYear()}/${startDate.getMonth() + 1}/${startDate.getDate()}`;
+    const endStr = `${endDate.getFullYear()}/${endDate.getMonth() + 1}/${endDate.getDate()}`;
+
+    const resultHTML = `
+      <div style="padding: 12px; background: rgba(0, 0, 0, 0.3); border-radius: 8px;">
+        <strong style="color: var(--accent-color, #a855f7); font-size: 0.95rem;">【指定期間アスペクトスキャン結果】</strong><br>
+        <span style="font-size: 0.8rem; color: var(--text-secondary);">
+          スキャン期間: ${startStr} ～ ${endStr}
+        </span><br><br>
+
+        <strong style="font-size: 0.85rem; color: var(--accent-color, #a855f7);">✦ 検出されたアスペクト (オーブ順)</strong>
+        <div style="padding-left: 4px; font-size: 0.85rem; color: var(--text-primary); margin-top: 8px; line-height: 1.6;">
+          ${hitsListStr}
+        </div>
+      </div>
+    `;
+
+    outputEl.innerHTML = resultHTML;
+
   } catch (err) {
-    console.error('期間スキャン計算エラー:', err);
-    outputEl.innerHTML = `<p style="color:#ff6b6b;">スキャン処理中にエラーが発生しました: ${err.message}</p>`;
+    console.error('スキャン処理中にエラーが発生しました:', err);
+    outputEl.innerHTML = `<p style="color:#ff6b6b;">スキャン中にエラーが発生しました。</p>`;
   }
 }
 
@@ -1267,6 +1338,76 @@ function calculateAstroData(date) {
 【五行】${baZi.getYearWuXing()} ${baZi.getMonthWuXing()} ${baZi.getDayWuXing()}
 【節気】${lunar.getJieQi() || 'なし'}`;
 }
+
+// --- 6. 日本始審図対比用のアスペクト判定関数（getJapanTransits） ---
+function getJapanTransits(currentPositions, chartType = '1946-10-07') {
+  if (typeof JAPAN_CHARTS === 'undefined' || !JAPAN_CHARTS[chartType]) {
+    return '日本始審図データが読み込まれていません。';
+  }
+
+  const natalMap = JAPAN_CHARTS[chartType].positions;
+  const bodyNamesJP = { Sun: '太陽', Moon: '月', Mercury: '水星', Venus: '金星', Mars: '火星', Jupiter: '木星', Saturn: '土星', Uranus: '天王星', Neptune: '海王星', Pluto: '冥王星' };
+  const hits = [];
+
+  Object.keys(currentPositions).forEach(tKey => {
+    const tPos = currentPositions[tKey];
+    Object.keys(natalMap).forEach(nKey => {
+      const nPos = natalMap[nKey];
+      let diff = Math.abs(tPos - nPos);
+      if (diff > 180) diff = 360 - diff;
+
+      let aspectName = '';
+      if (Math.abs(diff - 0) <= 4) aspectName = '合(0°)';
+      else if (Math.abs(diff - 180) <= 4) aspectName = '衝(180°)';
+      else if (Math.abs(diff - 90) <= 3) aspectName = '方形(90°)';
+      else if (Math.abs(diff - 120) <= 3) aspectName = '三分(120°)';
+
+      if (aspectName) {
+        hits.push(`T${bodyNamesJP[tKey] || tKey} ➔ N${bodyNamesJP[nKey] || nKey} (${aspectName})`);
+      }
+    });
+  });
+
+  return hits.length > 0 ? hits.join(' / ') : '顕著な対比アスペクトなし';
+}
+
+
+// --- 7. チャットログ描画・メッセージ追加の補助関数 ---
+function addMessageToChat(role, text) {
+  if (typeof chatHistory === 'undefined') window.chatHistory = [];
+  
+  chatHistory.push({ role, content: text });
+  localStorage.setItem('sephi_chat_log', JSON.stringify(chatHistory));
+  renderChatHistory();
+}
+
+function renderChatHistory() {
+  const container = document.getElementById('chat-container');
+  if (!container) return;
+
+  if (typeof chatHistory === 'undefined') {
+    const saved = localStorage.getItem('sephi_chat_log');
+    window.chatHistory = saved ? JSON.parse(saved) : [{ role: 'assistant', content: 'こんにちは、ハル。今日はどんな星の導きを読み解こうか？' }];
+  }
+
+  container.innerHTML = '';
+  chatHistory.forEach(msg => {
+    const bubble = document.createElement('div');
+    bubble.className = msg.role === 'user' ? 'chat-bubble-user' : 'chat-bubble-sephi';
+    bubble.innerText = msg.content;
+    container.appendChild(bubble);
+  });
+
+  container.scrollTop = container.scrollHeight;
+}
+
+
+// --- 8. ページ読み込み時の初期化 ---
+document.addEventListener('DOMContentLoaded', () => {
+  renderChatHistory();
+});
+
+
 
 // AI API通信・チャット描画処理（通常チャット送信時用）
 async function fetchSephiResponse() {
@@ -1538,6 +1679,110 @@ document.getElementById('calc-personal-aspects-btn')?.addEventListener('click', 
   const resultHTML = getNTAspectsInPeriod(startVal, endVal, natalVal);
   document.getElementById('data-output').innerHTML = resultHTML;
 });
+
+
+// --- 4. 個人ネイタル(N) × トランジット(T) 期間アスペクト計算関数 ---
+function getNTAspectsInPeriod(startDateStr, endDateStr, natalDateStr) {
+  const startDate = new Date(startDateStr);
+  const endDate = new Date(endDateStr);
+  const natalDate = new Date(natalDateStr);
+
+  if (isNaN(startDate) || isNaN(endDate) || isNaN(natalDate) || startDate > endDate) {
+    return '<p style="color:#ff6b6b;">正しい日付（生年月日・開始日・終了日）を入力してください。</p>';
+  }
+
+  const bodies = ['Sun', 'Moon', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn', 'Uranus', 'Neptune', 'Pluto'];
+  const bodyNamesJP = {
+    Sun: '太陽', Moon: '月', Mercury: '水星', Venus: '金星',
+    Mars: '火星', Jupiter: '木星', Saturn: '土星', Uranus: '天王星', Neptune: '海王星', Pluto: '冥王星'
+  };
+
+  // 1. ネイタル天体位置の算出
+  const natalTime = Astronomy.MakeTime(natalDate);
+  const natalPositions = {};
+  bodies.forEach(body => {
+    const vec = Astronomy.GeoVector(body, natalTime, true);
+    natalPositions[body] = Astronomy.Ecliptic(vec).elon;
+  });
+
+  const hits = [];
+  const currDate = new Date(startDate);
+
+  // 2. 指定期間内のトランジット比較
+  while (currDate <= endDate) {
+    const tTime = Astronomy.MakeTime(currDate);
+
+    bodies.forEach(tBody => {
+      const tVec = Astronomy.GeoVector(tBody, tTime, true);
+      const tPos = Astronomy.Ecliptic(tVec).elon;
+
+      bodies.forEach(nBody => {
+        const nPos = natalPositions[nBody];
+        let diff = Math.abs(tPos - nPos);
+        if (diff > 180) diff = 360 - diff;
+
+        let aspectName = '';
+        let targetAngle = 0;
+
+        if (Math.abs(diff - 0) <= 2) { aspectName = '合(0°)'; targetAngle = 0; }
+        else if (Math.abs(diff - 180) <= 2) { aspectName = '衝(180°)'; targetAngle = 180; }
+        else if (Math.abs(diff - 90) <= 2) { aspectName = '方形(90°)'; targetAngle = 90; }
+        else if (Math.abs(diff - 120) <= 2) { aspectName = '三分(120°)'; targetAngle = 120; }
+
+        if (aspectName) {
+          const orb = Math.abs(diff - targetAngle);
+          const dateStr = `${currDate.getFullYear()}/${currDate.getMonth() + 1}/${currDate.getDate()}`;
+          hits.push({
+            dateStr: dateStr,
+            tBody: bodyNamesJP[tBody] || tBody,
+            nBody: bodyNamesJP[nBody] || nBody,
+            aspect: aspectName,
+            orb: orb
+          });
+        }
+      });
+    });
+
+    currDate.setDate(currDate.getDate() + 1);
+  }
+
+  // 3. 結果HTML整形
+  if (hits.length === 0) {
+    return '<strong>【個人ネイタル × トランジットアスペクト】</strong><br>指定期間内に顕著なアスペクトヒットはありません。';
+  }
+
+  // 誤差（オーブ）が最も小さい順にソート
+  hits.sort((a, b) => a.orb - b.orb);
+
+  let html = `<strong>【個人ネイタル × トランジットアスペクト解析結果】</strong><br>`;
+  html += `<span style="font-size:0.85rem; color: var(--text-secondary);">期間: ${startDateStr} ～ ${endDateStr}</span><br><br>`;
+
+  hits.forEach(h => {
+    html += `・<strong>[${h.dateStr}]</strong> T${h.tBody} ➔ N${h.nBody}：${h.aspect} (オーブ ${h.orb.toFixed(2)}°)<br>`;
+  });
+
+  return html;
+}
+
+
+// --- 5. アプリ起動時のUI状態初期化 ---
+document.addEventListener('DOMContentLoaded', () => {
+  // 初期選択状態に応じたUIの初期表示切り替え
+  const checkedRadio = document.querySelector('input[name="astro-target"]:checked');
+  if (checkedRadio) {
+    checkedRadio.dispatchEvent(new Event('change'));
+  }
+
+  // 初回のチャット履歴表示（過去ログがあれば復元）
+  if (typeof renderChatHistory === 'function') {
+    renderChatHistory();
+  }
+});
+
+
+
+
+
 // --- 2. 日本の始審図ごとの象徴（注釈データ）定義 ---
 const JAPAN_CHART_INFO = {
   '1946-10-07': {
@@ -1836,6 +2081,75 @@ function searchAllHeavyAspects() {
   const startDate = new Date(`${startMonthVal}-01T00:00:00`);
   const results = [];
 
+// 1日刻みでトランジット（土星〜冥王星）× ネイタル（太陽〜土星）をスキャン
+  for (let i = 0; i < monthsCount * 30; i++) {
+    const currentDT = new Date(startDate.getTime() + i * 24 * 60 * 60 * 1000);
+    const time = Astronomy.MakeTime(currentDT);
+
+    tPlanets.forEach(tPlanet => {
+      const vec = Astronomy.GeoVector(tPlanet, time, true);
+      const tDeg = Astronomy.Ecliptic(vec).elon;
+
+      nPlanets.forEach(nPlanet => {
+        const nDeg = natalPositions[nPlanet];
+        if (nDeg === undefined || nDeg === null) return;
+
+        let diff = Math.abs(tDeg - nDeg) % 360;
+        if (diff > 180) diff = 360 - diff;
+
+        aspectTypes.forEach(asp => {
+          const orb = Math.abs(diff - asp.angle);
+          if (orb <= maxOrb) {
+            results.push({
+              dateStr: currentDT.toISOString().split('T')[0],
+              tBody: bodyNamesJP[tPlanet] || tPlanet,
+              nBody: bodyNamesJP[nPlanet] || nPlanet,
+              aspectName: asp.name,
+              exactOrb: orb.toFixed(2)
+            });
+          }
+        });
+      });
+    });
+  }
+
+  // 出力用HTMLの整形
+  let resultHTML = `
+    <strong style="color: var(--accent-color, #a855f7);">【重天体 一括アスペクト抽出結果】</strong><br>
+    <span style="font-size: 0.8rem; color: var(--text-secondary);">
+      対象: ${targetLabel} / T(土星〜冥王星) × N(太陽〜土星)<br>
+      オーブ: ±${maxOrb}° 以内 / 期間: ${startMonthVal} から ${monthsCount}ヶ月間
+    </span><br><br>
+  `;
+
+  if (results.length === 0) {
+    resultHTML += `指定した期間内に該当する主要アスペクト（オーブ±${maxOrb}°）は見つかりませんでした。`;
+  } else {
+    resultHTML += `<div style="max-height: 300px; overflow-y: auto; font-size: 0.85rem; padding-right: 4px;">`;
+    let lastKey = '';
+    results.forEach(ev => {
+      // 同じ日付・同じペアの重複表示を制御
+      const currentKey = `${ev.dateStr}_${ev.tBody}_${ev.nBody}_${ev.aspectName}`;
+      if (currentKey !== lastKey) {
+        resultHTML += `・<strong>[${ev.dateStr}]</strong> T${ev.tBody} ➔ N${ev.nBody} : ${ev.aspectName} (オーブ: ${ev.exactOrb}°)<br>`;
+        lastKey = currentKey;
+      }
+    });
+    resultHTML += `</div>`;
+  }
+
+  const outputEl = document.getElementById('data-output');
+  if (outputEl) {
+    outputEl.innerHTML = resultHTML;
+  }
+}
+
+// 一括抽出ボタンのイベントリスナー追加
+document.getElementById('search-all-heavy-btn')?.addEventListener('click', () => {
+  searchAllHeavyAspects();
+});
+
+
   // 1日刻みでスキャン
   for (let i = 0; i < monthsCount * 30; i++) {
     const currentDT = new Date(startDate.getTime() + i * 24 * 60 * 60 * 1000);
@@ -1933,6 +2247,64 @@ function calculateProgressData() {
   let baseDateTime = null;
   let targetLabel = '';
 
+
+// 1日＝1年法 (Secondary Progress) に基づく計算用日時の設定
+  // 経過年数（yearDiff）の「日数分」だけ基準日時から進める
+  const progressDate = new Date(baseDateTime.getTime());
+  progressDate.setDate(progressDate.getDate() + yearDiff);
+
+  const time = Astronomy.MakeTime(progressDate);
+  const pBodies = ['Sun', 'Moon', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn'];
+  const bodyNamesJP = {
+    Sun: '太陽', Moon: '月', Mercury: '水星', Venus: '金星',
+    Mars: '火星', Jupiter: '木星', Saturn: '土星'
+  };
+
+  // 各プログレス天体の位置とサビアン度数を算出
+  const progressResults = [];
+  pBodies.forEach(b => {
+    const vec = Astronomy.GeoVector(b, time, true);
+    const deg = Astronomy.Ecliptic(vec).elon;
+    const sabianData = getSignAndSabian(deg);
+
+    progressResults.push({
+      name: bodyNamesJP[b] || b,
+      sign: sabianData.sign,
+      formattedDeg: sabianData.formattedDeg,
+      sabianText: sabianData.fullSabianText
+    });
+  });
+
+  // 出力HTMLの組み立て
+  let resultHTML = `
+    <strong style="color: var(--accent-color, #a855f7);">【${targetYear}年 プログレス(P) 解析結果】</strong><br>
+    <span style="font-size: 0.8rem; color: var(--text-secondary);">
+      対象: ${targetLabel} / 年齢・経過年数: ${yearDiff}年目 (計算基準日: ${progressDate.toISOString().split('T')[0]})
+    </span><br><br>
+    <div style="font-size: 0.85rem; line-height: 1.6;">
+  `;
+
+  progressResults.forEach(item => {
+    resultHTML += `・<strong>P${item.name}</strong> ➔ <strong>${item.sign} ${item.formattedDeg}</strong> <span style="color: var(--accent-color, #a855f7); font-size: 0.8rem;">(サビアン: ${item.sabianText})</span><br>`;
+  });
+
+  resultHTML += `</div>`;
+
+  // 画面へ出力
+  const outputEl = document.getElementById('data-output');
+  if (outputEl) {
+    outputEl.innerHTML = resultHTML;
+  }
+}
+
+// プログレス計算ボタンのイベントバインド
+document.getElementById('calc-progress-btn')?.addEventListener('click', () => {
+  calculateProgressData();
+});
+
+
+
+
   // 始点となる基準日時（ネイタル/始審図）を取得
   if (selectedTarget === 'personal') {
     // 修正後（どちらのID名でも自動取得できるように変更）
@@ -2016,6 +2388,12 @@ const dob = document.getElementById('dob')?.value
   const outputEl = document.getElementById('data-output');
   if (outputEl) outputEl.innerHTML = resultHTML;
 }
+
+
+
+
+
+
 
 // ボタンイベントのバインド
 document.getElementById('calculate-progress-btn')?.addEventListener('click', () => {
