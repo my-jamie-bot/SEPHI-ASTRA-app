@@ -767,10 +767,10 @@ document.getElementById('decode-personal-btn')?.addEventListener('click', () => 
 function renderPersonalAspectResult() {
   const natalData = typeof calculatePersonalNatalData === 'function' ? calculatePersonalNatalData() : null;
   
-  // ★ birth-date と birth-time から日時を作成
-  const birthDateVal = document.getElementById('birth-date')?.value;
-  const birthTimeVal = document.getElementById('birth-time')?.value || '12:00';
-  const targetDate = birthDateVal ? new Date(`${birthDateVal}T${birthTimeVal}`) : new Date();
+ // 解読したい日時（target-date）を優先取得。入力がなければ誕生日（birth-date）を使用
+const targetDateVal = document.getElementById('target-date')?.value || document.getElementById('birth-date')?.value;
+const targetTimeVal = document.getElementById('target-time')?.value || document.getElementById('birth-time')?.value || '12:00';
+const targetDate = targetDateVal ? new Date(`${targetDateVal}T${targetTimeVal}`) : new Date();
 
   const outputEl = document.getElementById('data-output') || document.getElementById('output');
   if (!outputEl) return;
