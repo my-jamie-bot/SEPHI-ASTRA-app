@@ -1722,52 +1722,48 @@ function getNTAspectsInPeriod(startDateStr, endDateStr, natalDateStr) {
     Sun: '太陽', Moon: '月', Mercury: '水星', Venus: '金星', Mars: '火星', 
     Jupiter: '木星', Saturn: '土星', Uranus: '天王星', Neptune: '海王星', Pluto: '冥王星' 
   };
-  
-  // アスペクト定義（メジャーアスペクト ＋ タイトめのオーブ設定）
-  const aspectDefs = [
-    { name: '合(0°)', angle: 0, orb: 2.0 },
-    { name: '衝(180°)', angle: 180, orb: 2.0 },
-    { name: '方形(90°)', angle: 90, orb: 2.0 },
-    { name: '三分(120°)', angle: 120, orb: 2.0 },
-    { name: '六分(60°)', angle: 60, orb: 1.5 }
-  ];
 
-  const results = [];
-  const current = new Date(start);
+  // 抽出結果を格納する配列
+  const aspectResults = [];
 
-  // 指定期間を1日ずつスキャン
-  while (current <= end) {
-    const time = Astronomy.MakeTime(current);
-    const transitPositions = {};
+  // 開始日から終了日まで日単位でループ処理
+  for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+    const timeTransit = Astronomy.MakeTime(d);
     
-    transitBodies.forEach(b => {
-      transitPositions[b] = Astronomy.Ecliptic(Astronomy.GeoVector(b, time, true)).elon;
-    });
-
-    // 絞り込んだ組み合わせ（T: 5天体 × N: 6天体）で判定
     transitBodies.forEach(tBody => {
+      const tPos = Astronomy.Ecliptic(Astronomy.GeoVector(tBody, timeTransit, true)).elon;
+      
       natalBodies.forEach(nBody => {
-        let diff = Math.abs(transitPositions[tBody] - natalPositions[nBody]);
+        const nPos = natalPositions[nBody];
+        let diff = Math.abs(tPos - nPos);
         if (diff > 180) diff = 360 - diff;
 
-        aspectDefs.forEach(asp => {
-          if (Math.abs(diff - asp.angle) <= asp.orb) {
-            const dateFormatted = `${current.getFullYear()}/${current.getMonth() + 1}/${current.getDate()}`;
-            results.push({
-              date: dateFormatted,
-              detail: `T${bodyNamesJP[tBody]} - N${bodyNamesJP[nBody]} ${asp.name}`
-            });
-          }
-        });
+        // メジャーアスペクト判定（オーブ2度以内）
+        const orb = 2.0;
+        let aspectType = '';
+
+        if (Math.abs(diff - 0) <= orb) aspectType = 'コンジャンクション (0°)';
+        else if (Math.abs(diff - 60) <= orb) aspectType = 'セクスタイル (60°)';
+        else if (Math.abs(diff - 90) <= orb) aspectType = 'スクエア (90°)';
+        else if (Math.abs(diff - 120) <= orb) aspectType = 'トライン (120°)';
+        else if (Math.abs(diff - 180) <= orb) aspectType = 'オポジション (180°)';
+
+        if (aspectType) {
+          const dateStr = d.toISOString().split('T')[0];
+          const tName = bodyNamesJP[tBody] || tBody;
+          const nName = bodyNamesJP[nBody] || nBody;
+          aspectResults.push(`${dateStr}: T${tName} × N${nName} - ${aspectType}`);
+        }
       });
     });
-
-    current.setDate(current.getDate() + 1); // 翌日へ
   }
 
-  if (results.length === 0) {
-    return '<div style="padding: 12px; color: var(--text-secondary);">指定期間内に該当する主要な N × T アスペクトは見つかりませんでした。</div>';
+  if (aspectResults.length === 0) {
+    return '指定期間内に該当する主要アスペクトは見つかりませんでした。';
   }
+
+  return aspectResults.join('<br>');
+}
 
   // 日付順に整理して出力
   let htmlOutput = `<strong style="color: var(--accent-color, #a855f7);">【N × T 注目アスペクト タイムライン】</strong><br>`;
