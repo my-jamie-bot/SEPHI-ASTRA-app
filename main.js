@@ -788,12 +788,13 @@ document.getElementById('decode-personal-btn')?.addEventListener('click', () => 
 
 
 
-// --- 1. 【個人モード】指定日時の N×T アスペクト判定＆表示関数 ---
+// --- 1. 【個人モード】指定日時の N×T / N×N アスペクト判定＆表示関数 ---
 function renderPersonalAspectResult() {
   const natalData = typeof calculatePersonalNatalData === 'function' ? calculatePersonalNatalData() : null;
   
-  // 解読したい日時（target-date）を取得。空欄なら今日の日付を使用
-  const targetDateVal = document.getElementById('target-date')?.value || document.getElementById('scan-start-date')?.value;
+  // 生年月日と解読対象日時を取得
+  const birthDateVal = natalData?.birthDateStr || '';
+  const targetDateVal = document.getElementById('target-date')?.value || document.getElementById('scan-start-date')?.value || '';
   const targetTimeVal = document.getElementById('target-time')?.value || '12:00';
   const targetDate = targetDateVal ? new Date(`${targetDateVal}T${targetTimeVal}`) : new Date();
 
@@ -805,58 +806,105 @@ function renderPersonalAspectResult() {
     return;
   }
 
-  const time = Astronomy.MakeTime(targetDate);
-  const bodies = ['Sun', 'Moon', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn', 'Uranus', 'Neptune', 'Pluto'];
+  // ★ 生年月日と解読対象年月日が同じかどうか判定（YYYY-MM-DDの比較）
+  const formattedBirth = birthDateVal.split('T')[0];
+  const formattedTarget = targetDateVal.split('T')[0];
+  const isSameDate = (formattedBirth && formattedTarget && formattedBirth === formattedTarget);
+
   const bodyNamesJP = { Sun: '太陽', Moon: '月', Mercury: '水星', Venus: '金星', Mars: '火星', Jupiter: '木星', Saturn: '土星', Uranus: '天王星', Neptune: '海王星', Pluto: '冥王星' };
-  
-  // 指定日時のトランジット天体位置を計算
-  const transitPositions = {};
-  bodies.forEach(b => {
-    transitPositions[b] = Astronomy.Ecliptic(Astronomy.GeoVector(b, time, true)).elon;
-  });
-
-  // ネイタル × トランジット のアスペクト抽出
   const aspectHits = [];
-  Object.keys(natalData.positions).forEach(nKey => {
-    const nPos = natalData.positions[nKey];
-    bodies.forEach(tKey => {
-      const tPos = transitPositions[tKey];
-      let diff = Math.abs(tPos - nPos);
-      if (diff > 180) diff = 360 - diff;
 
-      let aspectName = '';
-      let targetAngle = 0;
-      if (Math.abs(diff - 0) <= 5) { aspectName = '合 (0°)'; targetAngle = 0; }
-      else if (Math.abs(diff - 180) <= 5) { aspectName = '衝 (180°)'; targetAngle = 180; }
-      else if (Math.abs(diff - 90) <= 4) { aspectName = '方形 (90°)'; targetAngle = 90; }
-      else if (Math.abs(diff - 120) <= 4) { aspectName = '三分 (120°)'; targetAngle = 120; }
-      else if (Math.abs(diff - 60) <= 3) { aspectName = '六分 (60°)'; targetAngle = 60; }
+  if (isSameDate) {
+    // ----------------------------------------------------
+    // 🅰️ 生年月日と解読日時に【同じ日】が選択されている場合 ➔ 【ネイタル単体 (N × N)】
+    // ----------------------------------------------------
+    const positions = natalData.positions;
+    const bodies = Object.keys(positions);
+    const aspectTypes = [
+      { name: '合 (0°)', angle: 0, orb: 6 },
+      { name: '衝 (180°)', angle: 180, orb: 6 },
+      { name: '方形 (90°)', angle: 90, orb: 6 },
+      { name: '三分 (120°)', angle: 120, orb: 5 },
+      { name: '六分 (60°)', angle: 60, orb: 4 }
+    ];
 
-      if (aspectName) {
-        const orb = Math.abs(diff - targetAngle);
-        aspectHits.push({
-          tBody: bodyNamesJP[tKey] || tKey,
-          nBody: bodyNamesJP[nKey] || nKey,
-          aspect: aspectName,
-          orb: orb
+    for (let i = 0; i < bodies.length; i++) {
+      for (let j = i + 1; j < bodies.length; j++) {
+        const b1 = bodies[i];
+        const b2 = bodies[j];
+        
+        let diff = Math.abs(positions[b1] - positions[b2]);
+        if (diff > 180) diff = 360 - diff;
+
+        aspectTypes.forEach(asp => {
+          const orb = Math.abs(diff - asp.angle);
+          if (orb <= asp.orb) {
+            aspectHits.push({
+              label: `N${bodyNamesJP[b1] || b1} ➔ N${bodyNamesJP[b2] || b2}`,
+              aspect: asp.name,
+              orb: orb
+            });
+          }
         });
       }
-    });
-  });
+    }
 
+  } else {
+    // ----------------------------------------------------
+    // 🅱️ 日時が【異なる】場合 ➔ 【ネイタル × トランジット (N × T)】
+    // ----------------------------------------------------
+    const time = Astronomy.MakeTime(targetDate);
+    const bodies = ['Sun', 'Moon', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn', 'Uranus', 'Neptune', 'Pluto'];
+    
+    // 指定日時のトランジット天体位置を計算
+    const transitPositions = {};
+    bodies.forEach(b => {
+      transitPositions[b] = Astronomy.Ecliptic(Astronomy.GeoVector(b, time, true)).elon;
+    });
+
+    Object.keys(natalData.positions).forEach(nKey => {
+      const nPos = natalData.positions[nKey];
+      bodies.forEach(tKey => {
+        const tPos = transitPositions[tKey];
+        let diff = Math.abs(tPos - nPos);
+        if (diff > 180) diff = 360 - diff;
+
+        let aspectName = '';
+        let targetAngle = 0;
+        if (Math.abs(diff - 0) <= 5) { aspectName = '合 (0°)'; targetAngle = 0; }
+        else if (Math.abs(diff - 180) <= 5) { aspectName = '衝 (180°)'; targetAngle = 180; }
+        else if (Math.abs(diff - 90) <= 4) { aspectName = '方形 (90°)'; targetAngle = 90; }
+        else if (Math.abs(diff - 120) <= 4) { aspectName = '三分 (120°)'; targetAngle = 120; }
+        else if (Math.abs(diff - 60) <= 3) { aspectName = '六分 (60°)'; targetAngle = 60; }
+
+        if (aspectName) {
+          const orb = Math.abs(diff - targetAngle);
+          aspectHits.push({
+            label: `T${bodyNamesJP[tKey] || tKey} ➔ N${bodyNamesJP[nKey] || nKey}`,
+            aspect: aspectName,
+            orb: orb
+          });
+        }
+      });
+    });
+  }
+
+  // アスペクトの文字列整形
   let aspectListStr = '';
   if (aspectHits.length === 0) {
     aspectListStr = '・形成されている主要アスペクトはありません。<br>';
   } else {
     aspectHits.sort((a, b) => a.orb - b.orb);
     aspectHits.forEach(h => {
-      aspectListStr += `・<strong>T${h.tBody} ➔ N${h.nBody}</strong> : ${h.aspect} (オーブ ${h.orb.toFixed(2)}°)<br>`;
+      aspectListStr += `・<strong>${h.label}</strong> : ${h.aspect} (オーブ ${h.orb.toFixed(2)}°)<br>`;
     });
   }
 
+  const titleText = isSameDate ? '【個人ネイタルアスペクト解析 (N × N)】' : '【個人ネイタル × トランジット アスペクト解析】';
+
   const resultHTML = `
     <div style="padding: 12px; background: rgba(0, 0, 0, 0.3); border-radius: 8px;">
-      <strong style="color: var(--accent-color, #a855f7); font-size: 0.95rem;">【個人ネイタル × トランジット アスペクト解析】</strong><br>
+      <strong style="color: var(--accent-color, #a855f7); font-size: 0.95rem;">${titleText}</strong><br>
       <span style="font-size: 0.8rem; color: var(--text-secondary);">
         解読対象日時: ${targetDate.getFullYear()}年${targetDate.getMonth() + 1}月${targetDate.getDate()}日 ${String(targetDate.getHours()).padStart(2, '0')}:${String(targetDate.getMinutes()).padStart(2, '0')}
       </span><br><br>
@@ -870,7 +918,6 @@ function renderPersonalAspectResult() {
 
   outputEl.innerHTML = resultHTML;
 }
-
 
 // --- 2. 【地球・日本モード】指定日時のアスペクト・チャート表示関数 ---
 function renderFullChartResult(selectedTarget) {
