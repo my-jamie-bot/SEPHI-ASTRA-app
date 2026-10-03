@@ -691,14 +691,56 @@ function renderPersonalNatalResult() {
     Jupiter: '木星', Saturn: '土星', Uranus: '天王星', Neptune: '海王星', Pluto: '冥王星' 
   };
 
+  const positions = natalData.positions;
+  const isTimeUnknown = natalData.isTimeUnknown;
+  const allTargetBodies = Object.keys(positions);
+
+  // 1. 天体配置＆サビアンシンボルの生成
   let planetListStr = '';
-  Object.keys(natalData.positions).forEach(key => {
-    const deg = natalData.positions[key];
+  allTargetBodies.forEach(key => {
+    const deg = positions[key];
     const info = getSabianInfo(deg);
     const name = bodyNamesJP[key] || key;
     planetListStr += `・${name}: ${info.sign} ${info.degInSign}° [数え${info.countDegree}度] ➔ サビアン: 「${info.symbol}」<br>`;
   });
 
+  // 2. 個人ネイタルアスペクト（N × N）の検出
+  const aspectsFound = [];
+  const aspectTypes = [
+    { name: '合(0°)', angle: 0, orb: 6 },
+    { name: '方形(90°)', angle: 90, orb: 6 },
+    { name: '衝(180°)', angle: 180, orb: 6 },
+    { name: '三分(120°)', angle: 120, orb: 5 },
+    { name: '六分(60°)', angle: 60, orb: 4 }
+  ];
+
+  for (let i = 0; i < allTargetBodies.length; i++) {
+    for (let j = i + 1; j < allTargetBodies.length; j++) {
+      const b1 = allTargetBodies[i];
+      const b2 = allTargetBodies[j];
+      
+      if ((b1 === 'Moon' || b2 === 'Moon') && isTimeUnknown) continue;
+      if ((b1 === 'Node' && b2 === 'SouthNode') || (b1 === 'SouthNode' && b2 === 'Node')) continue;
+
+      let diff = Math.abs(positions[b1] - positions[b2]);
+      if (diff > 180) diff = 360 - diff;
+
+      aspectTypes.forEach(asp => {
+        if (Math.abs(diff - asp.angle) <= asp.orb) {
+          const name1 = bodyNamesJP[b1] || b1;
+          const name2 = bodyNamesJP[b2] || b2;
+          const currentOrb = Math.abs(diff - asp.angle).toFixed(2);
+          aspectsFound.push(`N${name1} ➔ N${name2} : ${asp.name} (オーブ ${currentOrb}°)`);
+        }
+      });
+    }
+  }
+
+  const aspectStr = aspectsFound.length > 0 
+    ? '・' + aspectsFound.join('<br>・') 
+    : '主要アスペクトなし';
+
+  // 3. 画面描画用のHTML組み立て
   const resultHTML = `
     <strong style="color: var(--accent-color, #a855f7);">【個人ネイタルホロスコープ解析】</strong><br>
     <span style="font-size: 0.8rem; color: var(--text-secondary);">
@@ -709,6 +751,11 @@ function renderPersonalNatalResult() {
     <div style="padding-left: 8px; font-size: 0.85rem; color: var(--text-primary); margin-top: 4px;">
       ${planetListStr}
     </div><br>
+
+    <strong>◆ 形成されているネイタルアスペクト (N × N)</strong><br>
+    <div style="padding-left: 8px; font-size: 0.85rem; color: var(--text-primary); margin-top: 4px;">
+      ${aspectStr}
+    </div>
   `;
 
   const outputEl = document.getElementById('data-output') || document.getElementById('output');
