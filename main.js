@@ -1581,6 +1581,22 @@ document.getElementById('calc-personal-aspects-btn')?.addEventListener('click', 
 
 
 
+// --- 個人ネイタル × トランジットアスペクト計算関数 ---
+function calculateNTAspects(startDateStr, endDateStr, natalDateStr) {
+  const startDate = new Date(startDateStr);
+  const endDate = new Date(endDateStr);
+  const natalDate = new Date(natalDateStr);
+
+  if (isNaN(startDate) || isNaN(endDate) || isNaN(natalDate)) {
+    return '日付を正しく設定してください。';
+  }
+
+  const bodies = ['Sun', 'Moon', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn', 'Uranus', 'Neptune', 'Pluto'];
+  const bodyNamesJP = {
+    Sun: '太陽', Moon: '月', Mercury: '水星', Venus: '金星', Mars: '火星',
+    Jupiter: '木星', Saturn: '土星', Uranus: '天王星', Neptune: '海王星', Pluto: '冥王星'
+  };
+
   // 1. ネイタル天体位置の算出
   const natalTime = Astronomy.MakeTime(natalDate);
   const natalPositions = {};
@@ -1639,13 +1655,14 @@ document.getElementById('calc-personal-aspects-btn')?.addEventListener('click', 
   hits.sort((a, b) => a.orb - b.orb);
 
   let html = `<strong>【個人ネイタル × トランジットアスペクト解析結果】</strong><br>`;
-  html += `<span style="font-size:0.85rem; color: var(--text-secondary);">期間: ${startDateStr} ～ ${endDateStr}</span><br><br>`;
+  html += `<span style="font-size:0.85rem; color: var(--text-secondary);">期間: ${startDateStr} ➔${endDateStr}</span><br><br>`;
 
   hits.forEach(h => {
-    html += `・<strong>[${h.dateStr}]</strong> T${h.tBody} ➔ N${h.nBody}：${h.aspect} (オーブ ${h.orb.toFixed(2)}°)<br>`;
+    html += `・<strong>[${h.dateStr}]</strong> T${h.tBody} ➔ N${h.nBody} : ${h.aspect} (オーブ ${h.orb.toFixed(2)}°)<br>`;
   });
 
- 
+  return html;
+}
 
 
 // --- 5. アプリ起動時のUI状態初期化 ---
@@ -1822,7 +1839,6 @@ function searchPairAspects() {
       }
     });
   }
-}
 
   // 出力用テキストの整形
   let resultHTML = `
@@ -1923,7 +1939,7 @@ function searchAllHeavyAspects() {
   const startDate = new Date(`${startMonthVal}-01T00:00:00`);
   const results = [];
 
-// 1日刻みでトランジット（土星〜冥王星）× ネイタル（太陽〜土星）をスキャン
+  // 1日刻みでトランジット（土星〜冥王星）× ネイタル（太陽〜土星）をスキャン
   for (let i = 0; i < monthsCount * 30; i++) {
     const currentDT = new Date(startDate.getTime() + i * 24 * 60 * 60 * 1000);
     const time = Astronomy.MakeTime(currentDT);
@@ -1991,66 +2007,6 @@ document.getElementById('search-all-heavy-btn')?.addEventListener('click', () =>
   searchAllHeavyAspects();
 });
 
-
-  // 1日刻みでスキャン
-  for (let i = 0; i < monthsCount * 30; i++) {
-    const currentDT = new Date(startDate.getTime() + i * 24 * 60 * 60 * 1000);
-    const time = Astronomy.MakeTime(currentDT);
-    const dateStr = currentDT.toISOString().split('T')[0];
-
-    tPlanets.forEach(tp => {
-      const vec = Astronomy.GeoVector(tp, time, true);
-      const tDeg = Astronomy.Ecliptic(vec).elon;
-
-      nPlanets.forEach(np => {
-        const nDeg = natalPositions[np];
-        if (nDeg === undefined) return;
-
-        let diff = Math.abs(tDeg - nDeg) % 360;
-        if (diff > 180) diff = 360 - diff;
-
-        aspectTypes.forEach(asp => {
-          const orb = Math.abs(diff - asp.angle);
-          if (orb <= maxOrb) {
-            results.push({
-              dateStr: dateStr,
-              pairStr: `T${bodyNamesJP[tp]} × N${bodyNamesJP[np]}`,
-              aspectName: asp.name,
-              orb: orb.toFixed(2)
-            });
-          }
-        });
-      });
-    });
-  }
-
-  // 出力生成
-  let resultHTML = `
-    <strong style="color: var(--accent-color, #a855f7);">【主要ペア一括抽出結果】</strong><br>
-    <span style="font-size: 0.8rem; color: var(--text-secondary);">
-      対象: ${targetLabel} / オーブ: ±${maxOrb}° 以内 / 期間: ${startMonthVal} から ${monthsCount}ヶ月間
-    </span><br><br>
-  `;
-
-  if (results.length === 0) {
-    resultHTML += `指定期間内に該当するアスペクトはありませんでした。`;
-  } else {
-    resultHTML += `<div style="max-height: 300px; overflow-y: auto; font-size: 0.85rem;">`;
-    let lastKey = '';
-    results.forEach(res => {
-      const key = `${res.dateStr}-${res.pairStr}-${res.aspectName}`;
-      if (key !== lastKey) {
-        resultHTML += `・<strong>${res.dateStr}</strong> ➔ <span>${res.pairStr}</span>: <strong>${res.aspectName}</strong> (誤差: ${res.orb}°)<br>`;
-        lastKey = key;
-      }
-    });
-    resultHTML += `</div>`;
-  }
-
-  const outputEl = document.getElementById('data-output');
-  if (outputEl) outputEl.innerHTML = resultHTML;
-}
-
 // 一括ボタンのイベントバインド
 document.getElementById('search-all-heavy-aspects-btn')?.addEventListener('click', () => {
   searchAllHeavyAspects();
@@ -2089,71 +2045,12 @@ function calculateProgressData() {
   let baseDateTime = null;
   let targetLabel = '';
 
-
-// 1日＝1年法 (Secondary Progress) に基づく計算用日時の設定
-  // 経過年数（yearDiff）の「日数分」だけ基準日時から進める
-  const progressDate = new Date(baseDateTime.getTime());
-  progressDate.setDate(progressDate.getDate() + yearDiff);
-
-  const time = Astronomy.MakeTime(progressDate);
-  const pBodies = ['Sun', 'Moon', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn'];
-  const bodyNamesJP = {
-    Sun: '太陽', Moon: '月', Mercury: '水星', Venus: '金星',
-    Mars: '火星', Jupiter: '木星', Saturn: '土星'
-  };
-
-  // 各プログレス天体の位置とサビアン度数を算出
-  const progressResults = [];
-  pBodies.forEach(b => {
-    const vec = Astronomy.GeoVector(b, time, true);
-    const deg = Astronomy.Ecliptic(vec).elon;
-    const sabianData = getSignAndSabian(deg);
-
-    progressResults.push({
-      name: bodyNamesJP[b] || b,
-      sign: sabianData.sign,
-      formattedDeg: sabianData.formattedDeg,
-      sabianText: sabianData.fullSabianText
-    });
-  });
-
-  // 出力HTMLの組み立て
-  let resultHTML = `
-    <strong style="color: var(--accent-color, #a855f7);">【${targetYear}年 プログレス(P) 解析結果】</strong><br>
-    <span style="font-size: 0.8rem; color: var(--text-secondary);">
-      対象: ${targetLabel} / 年齢・経過年数: ${yearDiff}年目 (計算基準日: ${progressDate.toISOString().split('T')[0]})
-    </span><br><br>
-    <div style="font-size: 0.85rem; line-height: 1.6;">
-  `;
-
-  progressResults.forEach(item => {
-    resultHTML += `・<strong>P${item.name}</strong> ➔ <strong>${item.sign} ${item.formattedDeg}</strong> <span style="color: var(--accent-color, #a855f7); font-size: 0.8rem;">(サビアン: ${item.sabianText})</span><br>`;
-  });
-
-  resultHTML += `</div>`;
-
-  // 画面へ出力
-  const outputEl = document.getElementById('data-output');
-  if (outputEl) {
-    outputEl.innerHTML = resultHTML;
-  }
-}
-
-// プログレス計算ボタンのイベントバインド
-document.getElementById('calc-progress-btn')?.addEventListener('click', () => {
-  calculateProgressData();
-});
-
-
-
-
-  // 始点となる基準日時（ネイタル/始審図）を取得
+  // 1. 始点となる基準日時（ネイタル/始審図）を取得
   if (selectedTarget === 'personal') {
-    // 修正後（どちらのID名でも自動取得できるように変更）
-const dob = document.getElementById('dob')?.value 
-         || document.getElementById('birth-date')?.value 
-         || document.getElementById('natal-dob')?.value 
-         || document.getElementById('birthdate')?.value;
+    const dob = document.getElementById('dob')?.value 
+             || document.getElementById('birth-date')?.value 
+             || document.getElementById('natal-dob')?.value 
+             || document.getElementById('birthdate')?.value;
     const tob = document.getElementById('tob')?.value || '12:00';
     if (!dob) {
       alert('生年月日を入力してください。');
@@ -2176,7 +2073,7 @@ const dob = document.getElementById('dob')?.value
     return;
   }
 
-  // 指定年の取得
+  // 2. 指定年の取得と経過年数の計算
   const targetYear = parseInt(document.getElementById('progress-target-year')?.value || '2026', 10);
   const birthYear = baseDateTime.getFullYear();
   const yearDiff = targetYear - birthYear;
@@ -2186,11 +2083,11 @@ const dob = document.getElementById('dob')?.value
     return;
   }
 
-  // 1日1年法（1年 ➔ 1日進める）
-  const progressDateTime = new Date(baseDateTime.getTime() + yearDiff * 24 * 60 * 60 * 1000);
-  const pTime = Astronomy.MakeTime(progressDateTime);
+  // 3. 1日＝1年法 (Secondary Progress) に基づく計算用日時の設定
+  const progressDate = new Date(baseDateTime.getTime());
+  progressDate.setDate(progressDate.getDate() + yearDiff);
 
-  // 対象天体: 太陽、月、水星、金星、火星、木星、土星
+  const time = Astronomy.MakeTime(progressDate);
   const targetBodies = [
     { key: 'Sun', name: '太陽' },
     { key: 'Moon', name: '月' },
@@ -2201,16 +2098,17 @@ const dob = document.getElementById('dob')?.value
     { key: 'Saturn', name: '土星' }
   ];
 
+  // 4. 出力HTMLの組み立て
   let resultHTML = `
-    <strong style="color: var(--accent-color, #a855f7);">【プログレス(P) 天体＆サビアン位置】</strong><br>
+    <strong style="color: var(--accent-color, #a855f7);">【${targetYear}年 プログレス(P) 解析結果】</strong><br>
     <span style="font-size: 0.8rem; color: var(--text-secondary);">
-      対象: ${targetLabel} / 指定年: ${targetYear}年 (P+${yearDiff}日時点)
+      対象: ${targetLabel} / 年齢・経過年数: ${yearDiff}年目 (計算基準日: ${progressDate.toISOString().split('T')[0]})
     </span><br><br>
     <div style="max-height: 320px; overflow-y: auto; font-size: 0.85rem; line-height: 1.6;">
   `;
 
   targetBodies.forEach(b => {
-    const vec = Astronomy.GeoVector(b.key, pTime, true);
+    const vec = Astronomy.GeoVector(b.key, time, true);
     const degree = Astronomy.Ecliptic(vec).elon;
     const info = getSignAndSabian(degree);
 
@@ -2227,10 +2125,17 @@ const dob = document.getElementById('dob')?.value
 
   resultHTML += `</div>`;
 
+  // 画面へ出力
   const outputEl = document.getElementById('data-output');
-  if (outputEl) outputEl.innerHTML = resultHTML;
+  if (outputEl) {
+    outputEl.innerHTML = resultHTML;
+  }
 }
 
+// 5. イベントバインド（関数の外に配置）
+document.getElementById('calc-progress-btn')?.addEventListener('click', () => {
+  calculateProgressData();
+});
 
 
 
