@@ -788,16 +788,10 @@ document.getElementById('decode-personal-btn')?.addEventListener('click', () => 
 
 
 
-// --- 1. 【個人モード】指定日時の N×T / N×N アスペクト判定＆表示関数 ---
+// --- 1. 【個人モード】N×N (ネイタル単体) / N×T (トランジット) 切り替え表示関数 ---
 function renderPersonalAspectResult() {
   const natalData = typeof calculatePersonalNatalData === 'function' ? calculatePersonalNatalData() : null;
   
-  // 生年月日と解読対象日時を取得
-  const birthDateVal = natalData?.birthDateStr || '';
-  const targetDateVal = document.getElementById('target-date')?.value || document.getElementById('scan-start-date')?.value || '';
-  const targetTimeVal = document.getElementById('target-time')?.value || '12:00';
-  const targetDate = targetDateVal ? new Date(`${targetDateVal}T${targetTimeVal}`) : new Date();
-
   const outputEl = document.getElementById('data-output') || document.getElementById('output');
   if (!outputEl) return;
 
@@ -806,17 +800,28 @@ function renderPersonalAspectResult() {
     return;
   }
 
-  // ★ 生年月日と解読対象年月日が同じかどうか判定（YYYY-MM-DDの比較）
+  // 1. 各入力欄の値を取得
+  const birthDateVal = natalData.birthDateStr || '';
+  const birthTimeVal = natalData.birthTimeStr || '12:00';
+  
+  // 解読したい日時の入力欄を取得
+  const targetDateInput = document.getElementById('target-date') || document.getElementById('scan-start-date');
+  const targetDateVal = targetDateInput?.value || '';
+  const targetTimeVal = document.getElementById('target-time')?.value || '12:00';
+
+  // 2. モード判定（解読したい日時が未入力、または生年月日と全く同じ日の場合は N×N）
   const formattedBirth = birthDateVal.split('T')[0];
   const formattedTarget = targetDateVal.split('T')[0];
-  const isSameDate = (formattedBirth && formattedTarget && formattedBirth === formattedTarget);
+  
+  // 「解読日時が未入力」または「生年月日と解読日時が同じ」ならネイタル単体(N×N)
+  const isNatalOnlyMode = !targetDateVal || (formattedBirth === formattedTarget);
 
   const bodyNamesJP = { Sun: '太陽', Moon: '月', Mercury: '水星', Venus: '金星', Mars: '火星', Jupiter: '木星', Saturn: '土星', Uranus: '天王星', Neptune: '海王星', Pluto: '冥王星' };
   const aspectHits = [];
 
-  if (isSameDate) {
+  if (isNatalOnlyMode) {
     // ----------------------------------------------------
-    // 🅰️ 生年月日と解読日時に【同じ日】が選択されている場合 ➔ 【ネイタル単体 (N × N)】
+    // 🅰️ 生年月日メイン ➔ 【ネイタル単体 (N × N)】
     // ----------------------------------------------------
     const positions = natalData.positions;
     const bodies = Object.keys(positions);
@@ -851,8 +856,9 @@ function renderPersonalAspectResult() {
 
   } else {
     // ----------------------------------------------------
-    // 🅱️ 日時が【異なる】場合 ➔ 【ネイタル × トランジット (N × T)】
+    // 🅱️ 解読したい日時に別の日付を入力 ➔ 【ネイタル × その日のトランジット (N × T)】
     // ----------------------------------------------------
+    const targetDate = new Date(`${targetDateVal}T${targetTimeVal}`);
     const time = Astronomy.MakeTime(targetDate);
     const bodies = ['Sun', 'Moon', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn', 'Uranus', 'Neptune', 'Pluto'];
     
@@ -889,7 +895,7 @@ function renderPersonalAspectResult() {
     });
   }
 
-  // アスペクトの文字列整形
+  // 結果テキストの整形
   let aspectListStr = '';
   if (aspectHits.length === 0) {
     aspectListStr = '・形成されている主要アスペクトはありません。<br>';
@@ -900,13 +906,19 @@ function renderPersonalAspectResult() {
     });
   }
 
-  const titleText = isSameDate ? '【個人ネイタルアスペクト解析 (N × N)】' : '【個人ネイタル × トランジット アスペクト解析】';
+  const titleText = isNatalOnlyMode 
+    ? '【個人ネイタルホロスコープ解析 (N × N)】' 
+    : '【個人ネイタル × トランジット アスペクト解析】';
+
+  const dateSubText = isNatalOnlyMode 
+    ? `生年月日: ${birthDateVal} ${birthTimeVal}` 
+    : `生年月日: ${birthDateVal} × 解読日時: ${targetDateVal} ${targetTimeVal}`;
 
   const resultHTML = `
     <div style="padding: 12px; background: rgba(0, 0, 0, 0.3); border-radius: 8px;">
       <strong style="color: var(--accent-color, #a855f7); font-size: 0.95rem;">${titleText}</strong><br>
       <span style="font-size: 0.8rem; color: var(--text-secondary);">
-        解読対象日時: ${targetDate.getFullYear()}年${targetDate.getMonth() + 1}月${targetDate.getDate()}日 ${String(targetDate.getHours()).padStart(2, '0')}:${String(targetDate.getMinutes()).padStart(2, '0')}
+        ${dateSubText}
       </span><br><br>
 
       <strong style="font-size: 0.85rem; color: var(--accent-color, #a855f7);">✦ 形成されているアスペクト一覧</strong>
@@ -918,7 +930,6 @@ function renderPersonalAspectResult() {
 
   outputEl.innerHTML = resultHTML;
 }
-
 // --- 2. 【地球・日本モード】指定日時のアスペクト・チャート表示関数 ---
 function renderFullChartResult(selectedTarget) {
   // ★ 解読したい日時（target-date）、またはスキャン開始日（scan-start-date）から取得する
